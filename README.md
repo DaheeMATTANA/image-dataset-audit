@@ -96,11 +96,18 @@ uv run python src/<script>.py
 
 Every script reads from `data/` and writes its results to `reports/`, so all numbers in this README can be regenerated.
 
+Code style is checked with [Ruff](https://docs.astral.sh/ruff/) on every pull request (`.github/workflows/lint.yml`). To run the same checks locally:
+
+```bash
+uv run ruff check .          # lint (add --fix to apply safe fixes)
+uv run ruff format .         # format
+```
+
 ---
 
 ## Tools
 
-Python 3.12 · uv · Pillow · pandas · NumPy · matplotlib · imagehash · pytest · PyTorch and open_clip · FAISS · pyarrow / Parquet
+Python 3.12 · uv · Pillow · pandas · NumPy · matplotlib · imagehash · pytest · Ruff · PyTorch and open_clip · FAISS · pyarrow / Parquet
 
 ---
 
