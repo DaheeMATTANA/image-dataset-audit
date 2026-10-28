@@ -87,15 +87,17 @@ def main() -> None:
     # One row per extension, e.g. "ext_.jpg"
     summary.update({f"ext_{ext}": n for ext, n in sorted(exts.items())})
 
+    by_class_path = REPORTS / "metadata_by_class.csv"
+    summary_path = REPORTS / "metadata_summary.csv"
     REPORTS.mkdir(exist_ok=True)
-    class_count.to_csv(REPORTS / "counts.csv")
+    class_count.to_csv(by_class_path)
     summary_df = pd.DataFrame(summary.items(), columns=["check", "value"])
-    summary_df.to_csv(REPORTS / "counts_summary.csv", index=False)
+    summary_df.to_csv(summary_path, index=False)
 
     print(summary_df.to_string(index=False))
     if overlap:
         print(f"First overlapping IDs: {sorted(overlap)[:10]}")
-    print(f"\nSaved: {REPORTS / 'counts.csv'}, {REPORTS / 'counts_summary.csv'}")
+    print(f"\nSaved: {by_class_path}, {summary_path}")
 
 
 if __name__ == "__main__":
