@@ -1,0 +1,17 @@
+check,value
+classes,101
+images_listed,101000
+train_listed,75750
+test_listed,25250
+train_per_class_min,750
+train_per_class_max,750
+test_per_class_min,250
+test_per_class_max,250
+listed_twice_in_split,0
+in_both_train_and_test,0
+actual_files,101000
+actual_unique_ids,101000
+listed_but_missing,0
+exists_but_not_listed,0
+class_key_id_prefix_mismatch,0
+ext_.jpg,101000
