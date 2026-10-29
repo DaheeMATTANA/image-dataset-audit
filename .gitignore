@@ -11,3 +11,6 @@ wheels/
 
 # Dataset files
 /data/
+
+# Intermediate outputs from exploration scripts
+/scratch/
