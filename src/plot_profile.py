@@ -16,7 +16,7 @@ from matplotlib.ticker import StrMethodFormatter
 
 from dataset_utils import OUTPUTS, REPORTS
 
-# Same colours as experiments/jpeg_png_experiment.py
+# Same colors as experiments/jpeg_png_experiment.py
 SPLIT_COLORS = {"train": "#2a78d6", "test": "#eb6834"}
 BAR = "#2a78d6"
 INK, GRID, SURFACE = "#52514e", "#e4e3df", "#ffffff"
@@ -49,7 +49,7 @@ def save(fig: plt.Figure, path: Path) -> None:
 
 
 def plot_short_side(df: pd.DataFrame, path: Path) -> None:
-    """Histogram of the short side, with the two most common sizes labelled."""
+    """Histogram of the short side, with the two most common sizes labeled."""
     short = df[["width", "height"]].min(axis=1)
     long_512_pct = (df[["width", "height"]].max(axis=1) == 512).mean() * 100
     bins = np.arange(short.min() // 8 * 8, 512 + 9, 8)
@@ -108,7 +108,7 @@ def plot_file_size(df: pd.DataFrame, path: Path) -> None:
 
 
 def plot_width_height(df: pd.DataFrame, path: Path) -> None:
-    """One dot per distinct width x height, coloured by how many images have it."""
+    """One dot per distinct width x height, colored by how many images have it."""
     sizes = df.groupby(["width", "height"]).size().reset_index(name="n")
     sizes = sizes.sort_values("n")  # most common drawn last, on top
     n_land = int((df["width"] > df["height"]).sum())
@@ -153,7 +153,7 @@ def plot_width_height(df: pd.DataFrame, path: Path) -> None:
 
 
 def plot_mode(df: pd.DataFrame, path: Path) -> None:
-    """Image count per colour mode and split; counts printed since tiny bars vanish."""
+    """Image count per color mode and split; counts printed since tiny bars vanish."""
     counts = pd.crosstab(df["mode"], df["split"]).reindex(
         columns=list(SPLIT_COLORS), fill_value=0
     )
@@ -175,7 +175,7 @@ def plot_mode(df: pd.DataFrame, path: Path) -> None:
     ax.xaxis.set_major_formatter(THOUSANDS)
     style_axes(
         ax,
-        "Colour mode per split (RGB = colour, L = grayscale)",
+        "Color mode per split (RGB = color, L = grayscale)",
         "images",
         "",
         grid="x",
