@@ -1,33 +1,15 @@
-import json
 from collections import Counter
 from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
 
-ROOT = Path(__file__).resolve().parents[1]  # repo root
-DATA = ROOT / "data" / "food-101"
-REPORTS = ROOT / "reports"
-
-
-def load_split(split: str) -> pd.DataFrame:
-    """
-    Return one row per image listed in meta.
-    """
-    with open(DATA / "meta" / f"{split}.json") as f:
-        mapping = json.load(f)  # {class_name: [image_id, ...]}
-
-    rows = []
-
-    for class_name, image_ids in mapping.items():
-        for image_id in image_ids:
-            rows.append({"image_id": image_id, "class": class_name, "split": split})
-    return pd.DataFrame(rows)
+from dataset_utils import DATA, REPORTS, load_meta
 
 
 def scan_actual_files(images_dir: Path) -> tuple[set[str], Counter[str], int]:
-    """
-    Scan through all files on images folder.
+    """Scan through all files on images folder.
+
     - Image IDs
     - extension counts
     - number of files
@@ -45,11 +27,11 @@ def scan_actual_files(images_dir: Path) -> tuple[set[str], Counter[str], int]:
 
 
 def main() -> None:
-    df = pd.concat([load_split("train"), load_split("test")], ignore_index=True)
+    df = load_meta()
 
     # check 1. per-class counts
     class_count = pd.crosstab(df["class"], df["split"])
-    dup_in_class = int(df.duplicated(subset=["image_id", "split"]).sum())
+    dup_in_split = int(df.duplicated(subset=["image_id", "split"]).sum())
 
     # check 2. class mismatch
     class_mismatch = int((df["image_id"].str.split("/").str[0] != df["class"]).sum())
@@ -76,7 +58,7 @@ def main() -> None:
         "train_per_class_max": int(class_count["train"].max()),
         "test_per_class_min": int(class_count["test"].min()),
         "test_per_class_max": int(class_count["test"].max()),
-        "listed_twice_in_split": dup_in_class,
+        "listed_twice_in_split": dup_in_split,
         "in_both_train_and_test": len(overlap),
         "actual_files": n_files,
         "actual_unique_ids": len(actual_ids),

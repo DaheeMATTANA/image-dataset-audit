@@ -1,0 +1,17 @@
+check,value
+files,101000
+unreadable,0
+long_side_is_512_pct,100.0
+long_side_min,512
+long_side_max,512
+short_side_min,122
+size_kb_mean,50.7
+size_kb_median,49.6
+size_kb_min,8.7
+size_kb_max,215.7
+size_total_gb,5.12
+split_train,75750
+split_test,25250
+format_JPEG,101000
+mode_RGB,100997
+mode_L,3
