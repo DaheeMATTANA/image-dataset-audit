@@ -40,21 +40,21 @@ Every number below is produced by a script in [`src/`](src/); full outputs are i
 
 ### Stage 1: splits and metadata
 
-Script: [`src/check_metadata.py`](src/check_metadata.py). Each row is a validation check: it passes when the observed value matches the expected one.
+Script: [`src/check_metadata.py`](src/check_metadata.py). Each row is one check run by the script. *Measured on* says what it reads: the split files (`meta/train.json`, `meta/test.json`), the image files on disk, or a comparison of the two.
 
-| Check | Expected | Observed |
+| Check | Measured on | Observed |
 |---|---|---|
-| Classes | 101 | 101 |
-| Images per class (train / test) | 750 / 250 | 750 / 250 in every class |
-| Images on disk | 101,000 | 101,000 |
-| IDs listed twice within a split | 0 | 0 |
-| IDs in both train and test | 0 | 0 |
-| Listed in metadata but missing on disk | 0 | 0 |
-| On disk but not listed in metadata | 0 | 0 |
-| Class key ≠ class in the image ID | 0 | 0 |
-| File extensions | | `.jpg` (101,000) |
+| Classes | split files | 101 |
+| Images per class (train / test) | split files | 750 / 250 in every class |
+| Images on disk | disk | 101,000 |
+| IDs listed twice within a split | split files | 0 |
+| IDs in both train and test | split files | 0 |
+| Listed in split files but missing on disk | split files vs disk | 0 |
+| On disk but not listed in split files | split files vs disk | 0 |
+| Class key ≠ class in the image ID | split files | 0 |
+| File extensions | disk | `.jpg` (101,000) |
 
-The split files (`meta/train.json`, `meta/test.json`) are fully consistent with the images on disk. The train/test check compares IDs only; resized or re-encoded copies across splits are covered by stage 3.
+The set of image IDs in the split files matches the files on disk exactly (no missing, no unlisted files), so the per-class counts also hold on disk. The train/test check compares IDs only; resized or re-encoded copies across splits are covered by stage 3.
 
 Reports: [`metadata_by_class.csv`](reports/metadata_by_class.csv) (per class), [`metadata_summary.csv`](reports/metadata_summary.csv) (one row per check).
 
