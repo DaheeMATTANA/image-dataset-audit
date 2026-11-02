@@ -58,7 +58,7 @@ and then quantifies **the effect of cross-split duplicates on evaluation accurac
 | One decoded image in memory | 512 × 512 × 3 bytes (square) down to 512 × 384 × 3 | 0.59–0.79 MB; mean 0.705 MB [per-image table] |
 | Whole dataset decoded | sum of H × W × 3 over all images | **71.2 GB** [per-image table], vs 30 GB of RAM: every pass must **stream** images, never load them all |
 | Compression ratio of the JPEGs | 0.705 MB decoded ÷ 50.7 KB on disk | ~14× |
-| Embeddings (512 dims, float32) | 101,000 × 512 × 4 bytes | ~207 MB (~103 MB in float16): fits in RAM. 512 dims assumes a ViT-B-size encoder (e.g. CLIP ViT-B/32); a ViT-L encoder outputs 768 dims (~310 MB) |
+| Embeddings (512 dims, float32) | 101,000 × 512 × 4 bytes | ~207 MB (~103 MB in float16): fits in RAM. 512 dims assumes a CLIP ViT-B encoder (e.g. CLIP ViT-B/32); CLIP ViT-L/14 outputs 768 dims (~310 MB) |
 | Curation table | 101,000 rows × ~20 columns | a few MB as Parquet |
 
 ### Time per pass
