@@ -1,5 +1,6 @@
 """
 Check that every image fully decodes, and hash its file bytes and its pixels.
+Pixel hash = pixels after convert("RGB"), EXIF orientation not applied.
 
 Columns: image_id, split, class, decode_ok, error_type, error_message,
 file_sha256, pixel_sha256
@@ -41,7 +42,13 @@ def get_sha256_file(path: Path, chunk_size: int = 1 << 20) -> str:
 
 
 def get_sha256_pixels(arr: np.ndarray) -> str:
-    """SHA-256 of the decoded image array (shape included)."""
+    """SHA-256 of the decoded image array (shape included).
+
+    The caller passes the pixels after convert("RGB"), without applying EXIF
+    orientation: what a typical training loader sees. So color mode is ignored
+    (an L image equals an RGB image with three identical channels), alpha is
+    dropped, and files differing only in their orientation tag hash the same.
+    """
     h = hashlib.sha256()
     h.update(str(arr.shape).encode())
     h.update(np.ascontiguousarray(arr))
