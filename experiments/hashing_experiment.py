@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PIL import Image
+from PIL import Image, ImageFile
 
 # %%
 ROOT = next(
@@ -139,3 +139,67 @@ for name, p in [
     )
 
 pd.DataFrame(rows)
+
+# %%
+# bad copies
+
+BAD = ROOT / "scratch" / "bad_copies"
+BAD.mkdir(parents=True, exist_ok=True)
+
+# check this setting before creating bad copies (True would hide truncation)
+print("LOAD_TRUNCATED_IMAGES: ", ImageFile.LOAD_TRUNCATED_IMAGES)
+print(src.name, len(original), "bytes")
+
+cases = {"intact (control)": src}
+
+p = BAD / "truncated_50.jpg"
+p.write_bytes(original[: len(original) // 2])  # keep the first half
+cases["truncated 50%"] = p
+
+p = BAD / "truncated_99.jpg"
+p.write_bytes(original[: int(len(original) * 0.99)])  # lose only the last 1%
+cases["truncated 99%"] = p
+
+p = BAD / "zero_bytes.jpg"
+p.write_bytes(b"")  # empty file
+cases["zero bytes"] = p
+
+d = bytearray(original)
+mid = len(d) // 2
+rng = random.Random(0)
+# 1000 random bytes mid-file
+d[mid : mid + 1000] = bytes(rng.randrange(256) for _ in range(1000))
+p = BAD / "random_mid.jpg"
+p.write_bytes(d)
+cases["random bytes mid-file"] = p
+
+p = BAD / "png_renamed.jpg"
+with Image.open(src) as im:
+    im.save(p, format="PNG")
+cases["PNG named .jpg"] = p
+
+
+# %%
+def check(path: Path, level: str) -> str:
+    """Run one check level on a fresh open; return "ok (FORMAT)" or the error."""
+    try:
+        with Image.open(path) as im:
+            fmt = im.format
+            if level == "verify":
+                im.verify()
+            elif level == "load":
+                im.load()
+        return f"ok ({fmt})"
+    except Exception as e:
+        return f"{type(e).__name__}: {e}"
+
+
+levels = ["open", "verify", "load"]
+results = pd.DataFrame(
+    [
+        {"case": name, **{lvl: check(p, lvl) for lvl in levels}}
+        for name, p in cases.items()
+    ]
+)
+results
+# %%
