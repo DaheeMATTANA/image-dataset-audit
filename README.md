@@ -144,9 +144,11 @@ image-dataset-audit/
 ├── experiments/        # one-off experiments (not pipeline stages)
 ├── tests/              # pytest tests
 ├── reports/            # small generated results: summaries, plots, the written report
+├── docs/               # design docs: constraints, options, decisions, trade-offs
 ├── annotations/        # hand labels, keyed by image_id
 ├── outputs/            # per-image tables, regenerated (git-ignored)
 ├── data/               # Food-101, local only (git-ignored, ~5 GB)
+├── scratch/            # intermediate files from experiments (git-ignored, safe to delete)
 ├── pyproject.toml      # dependencies and tool config
 └── uv.lock             # exact pinned versions
 ```
