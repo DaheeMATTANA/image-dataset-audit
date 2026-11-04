@@ -1,0 +1,17 @@
+sample,workers,chunksize,seconds,images_per_s,identical_output,cpu,logical_cpus,python,start_method,speedup,efficiency
+5000,1,,9.98,501.0,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,1.0,1.0
+5000,2,64,5.26,951.2,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,1.9,0.95
+5000,4,64,2.79,1794.5,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,3.58,0.9
+5000,6,64,2.12,2355.9,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,4.7,0.78
+5000,14,64,1.62,3091.2,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,6.17,0.44
+5000,20,64,1.68,2978.0,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,5.94,0.3
+5000,2,256,5.11,978.4,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,1.95,0.98
+5000,4,256,2.71,1844.1,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,3.68,0.92
+5000,6,256,2.21,2257.9,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,4.51,0.75
+5000,14,256,1.56,3214.7,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,6.42,0.46
+5000,20,256,1.55,3234.5,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,6.46,0.32
+5000,2,1024,6.21,805.0,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,1.61,0.8
+5000,4,1024,4.16,1202.5,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,2.4,0.6
+5000,6,1024,2.45,2039.4,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,4.07,0.68
+5000,14,1024,2.48,2017.9,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,4.03,0.29
+5000,20,1024,2.62,1907.9,True,13th Gen Intel(R) Core(TM) i7-13650HX,20,3.12.15,forkserver,3.81,0.19
