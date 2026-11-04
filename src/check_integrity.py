@@ -10,6 +10,7 @@ With --sample N: outputs/integrity_sample.csv only (no report).
 
 import argparse
 import hashlib
+import os
 import random
 import sys
 import time
@@ -116,18 +117,19 @@ def parse_args() -> argparse.Namespace:
         "--workers",
         type=int,
         default=1,
-        help="number of worker processes (default: 1)",
+        help="number of worker processes (default: 1; 0 = all CPUs)",
     )
     args = parser.parse_args()
     if args.sample is not None and args.sample <= 0:
         parser.error("--sample must be a positive integer")
-    if args.workers < 1:
-        parser.error("--workers must be a positive integer")
+    if args.workers < 0:
+        parser.error("--workers must be 0 (all CPUs) or a positive integer")
     return args
 
 
 def main() -> None:
     args = parse_args()
+    workers = os.cpu_count() if args.workers == 0 else args.workers  # 0 = use all CPUs
 
     files = sorted(p for p in IMAGES.glob("*/*") if p.is_file())
     if not files:
@@ -137,7 +139,7 @@ def main() -> None:
 
     start = time.perf_counter()
     rows = parallel_map(
-        check_integrity, files, workers=args.workers, desc="Checking", unit="file"
+        check_integrity, files, workers=workers, desc="Checking", unit="file"
     )
     elapsed = time.perf_counter() - start
 
