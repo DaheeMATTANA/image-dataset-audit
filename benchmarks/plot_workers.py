@@ -32,7 +32,7 @@ def main() -> None:
     if len(sizes) > len(COLORS):
         sys.exit(f"{len(sizes)} sample sizes but only {len(COLORS)} colors defined")
 
-    fig, (ax_tp, ax_eff) = plt.subplots(1, 2, figsize=(11, 4.2), sharex=True)
+    fig, (ax_tp, ax_eff) = plt.subplots(1, 2, figsize=(11, 4.6), sharex=True)
 
     for color, size in zip(COLORS, sizes, strict=False):
         d = df[df["sample"] == size].sort_values("workers")
@@ -98,18 +98,26 @@ def main() -> None:
     ax_eff.set_ylabel("%", color=MUTED)
     ax_eff.set_ylim(0, 105)
 
-    handles, labels = ax_tp.get_legend_handles_labels()
-    fig.legend(
-        handles, labels, loc="upper right", ncol=len(labels), frameon=False, fontsize=9
-    )
     fig.suptitle(
         f"check_integrity scaling with worker processes (chunksize {chunksize})",
         x=0.01,
+        y=0.98,
         ha="left",
         fontsize=12,
         fontweight="bold",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    # Legend on its own row under the title, so a long title can't run into it
+    handles, labels = ax_tp.get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="upper left",
+        bbox_to_anchor=(0.005, 0.92),
+        ncol=len(labels),
+        frameon=False,
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.89))
     fig.savefig(OUT, dpi=150)
     print(f"Saved: {OUT}")
 
