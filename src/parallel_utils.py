@@ -18,15 +18,18 @@ def parallel_map[T, R](
 
     func must be defined at the top level of a module so worker processes can import it.
     """
+
+    label = f"{desc} ({workers} worker{'s' if workers > 1 else ''})"
+
     if workers == 1:
-        return [func(x) for x in tqdm(items, desc=desc, unit=unit)]
+        return [func(x) for x in tqdm(items, desc=label, unit=unit)]
     with get_context("forkserver").Pool(processes=workers) as pool:
         results: Iterable[R] = pool.imap_unordered(func, items, chunksize=chunksize)
         return list(
             tqdm(
                 results,
                 total=len(items),
-                desc=f"{desc} ({workers} workers)",
+                desc=label,
                 unit=unit,
             )
         )
