@@ -131,6 +131,22 @@ uv run python src/check_integrity.py --workers 0
 - `--sample N`: check a random sample of N images (fixed seed); writes `outputs/integrity_sample.csv` only, no report.
 - `--max-fail-rate F`: stop without writing the report if more than this fraction of files fail to decode (default 0.01), since a high failure rate more likely means a bug than a broken dataset.
 
+### Benchmarks
+
+Timing scripts live in [`benchmarks/`](benchmarks/) and write their results to `reports/benchmark_*`.
+
+| Script | Measures | Outputs |
+|---|---|---|
+| `benchmarks/bench_workers.py` | `check_integrity` throughput for given sample sizes, worker counts and chunk sizes, against a 1-worker baseline (one run per configuration, warm page cache, pool start-up included) | `reports/benchmark_workers.csv` (one chunk size) or `reports/benchmark_chunksize.csv` (several) |
+| `benchmarks/plot_workers.py` | Throughput and efficiency per worker count, one line per sample size | `reports/benchmark_workers_plot.png` (needs `benchmark_workers.csv`) |
+| `benchmarks/plot_chunksize.py` | Speedup per worker count, one line per chunk size, with the limit set by the number of batches (largest sample only) | `reports/benchmark_chunksize_plot.png` (needs `benchmark_chunksize.csv`) |
+
+```bash
+uv run python benchmarks/bench_workers.py --workers 2 6 14 20                  # → benchmark_workers.csv
+uv run python benchmarks/plot_workers.py
+uv run python benchmarks/bench_workers.py --workers 2 6 14 20 --chunksize 1 64 1024  # → benchmark_chunksize.csv
+uv run python benchmarks/plot_chunksize.py
+```
 
 ---
 
@@ -151,6 +167,7 @@ image-dataset-audit/
 ├── .github/workflows/  # CI (lint)
 ├── src/                # one script per pipeline stage
 ├── experiments/        # one-off experiments (not pipeline stages)
+├── benchmarks/         # timing scripts for pipeline stages (results in reports/benchmark_*)
 ├── tests/              # pytest tests
 ├── reports/            # small generated results: summaries, plots, the written report
 ├── docs/               # design docs: constraints, options, decisions, trade-offs
