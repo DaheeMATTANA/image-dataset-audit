@@ -19,9 +19,9 @@ import numpy as np
 import pandas as pd
 import PIL
 from PIL import Image, ImageFile
-from tqdm import tqdm
 
 from dataset_utils import DATA, OUTPUTS, REPORTS, load_meta
+from parallel_utils import parallel_map
 
 IMAGES = DATA / "images"
 SEED = 42
@@ -112,9 +112,17 @@ def parse_args() -> argparse.Namespace:
         help="stop without writing the report if more than this fraction of "
         "files fail to decode (default: 0.01)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="number of worker processes (default: 1)",
+    )
     args = parser.parse_args()
     if args.sample is not None and args.sample <= 0:
         parser.error("--sample must be a positive integer")
+    if args.workers < 1:
+        parser.error("--workers must be a positive integer")
     return args
 
 
@@ -128,11 +136,15 @@ def main() -> None:
         files = random.Random(SEED).sample(files, min(args.sample, len(files)))
 
     start = time.perf_counter()
-    rows = [check_integrity(p) for p in tqdm(files, desc="Checking", unit="file")]
+    rows = parallel_map(
+        check_integrity, files, workers=args.workers, desc="Checking", unit="file"
+    )
     elapsed = time.perf_counter() - start
 
-    df = pd.DataFrame(rows).merge(
-        load_meta()[["image_id", "split"]], on="image_id", how="left"
+    df = (
+        pd.DataFrame(rows)
+        .merge(load_meta()[["image_id", "split"]], on="image_id", how="left")
+        .sort_values("image_id", ignore_index=True)
     )
     df["split"] = df["split"].fillna("unlisted")
     cols = [
