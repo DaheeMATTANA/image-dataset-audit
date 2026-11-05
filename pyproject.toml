@@ -27,9 +27,15 @@ dev = [
     "ruff>=0.17.3",
 ]
 
+[tool.pytest.ini_options]
+# Scripts are plain modules, not a package: make them importable in tests
+pythonpath = ["src", "benchmarks"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+# Folders holding first-party modules, for import sorting
+src = [".", "src", "benchmarks"]
 exclude = ["data", "reports", "scratch"]
 
 [tool.ruff.lint]

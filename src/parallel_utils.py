@@ -5,6 +5,8 @@ from multiprocessing import get_context
 
 from tqdm import tqdm
 
+START_METHOD = "forkserver"
+
 
 def parallel_map[T, R](
     func: Callable[[T], R],
@@ -23,7 +25,7 @@ def parallel_map[T, R](
 
     if workers == 1:
         return [func(x) for x in tqdm(items, desc=label, unit=unit)]
-    with get_context("forkserver").Pool(processes=workers) as pool:
+    with get_context(START_METHOD).Pool(processes=workers) as pool:
         results: Iterable[R] = pool.imap_unordered(func, items, chunksize=chunksize)
         return list(
             tqdm(
