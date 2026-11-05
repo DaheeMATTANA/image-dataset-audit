@@ -1,0 +1,7 @@
+check,value
+files,101000
+decode_ok,101000
+decode_failed,0
+pillow_version,13.0.0
+split_train,75750
+split_test,25250
