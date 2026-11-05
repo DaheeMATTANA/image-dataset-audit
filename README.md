@@ -6,7 +6,7 @@ A reproducible data-quality pipeline for image datasets. It checks dataset integ
 
 The first target is [Food-101](https://data.vision.ee.ethz.ch/cvl/datasets_extra/food-101/) (101,000 images, 101 classes), a standard benchmark used from training tutorials to the evaluation suites of large vision-language models. The pipeline is designed to scale to datasets of ~10M images and, later, to video.
 
-> **Status:** in progress. Stage 1 (dataset profile) is done; see [Results](#results-food-101).
+> **Status:** in progress. Stage 1 (dataset profile) is done; see [Results](#results-food-101). Stage 2 (corruption and exact duplicates) is in progress.
 
 ---
 
@@ -23,7 +23,7 @@ The first target is [Food-101](https://data.vision.ee.ethz.ch/cvl/datasets_extra
 | # | Stage | Method | Output | Status |
 |---|---|---|---|---|
 | 1 | Dataset profile | Split and metadata checks; formats, color modes, resolutions, file sizes | Data profile | ✅ done |
-| 2 | Corruption and exact duplicates | Full decode with Pillow, SHA-256 hashing | Corruption and exact-duplicate report | ⚪ planned |
+| 2 | Corruption and exact duplicates | Full decode with Pillow, SHA-256 hashing | Corruption and exact-duplicate report | 🟡 in progress |
 | 3 | Near-duplicates | Perceptual hashing (dHash, pHash), Hamming distance, 200 hand-labeled pairs | Near-duplicate list with measured precision | ⚪ planned |
 | 4 | Embeddings | Pretrained vision encoder (open_clip) | Embeddings for the full dataset | ⚪ planned |
 | 5 | Semantic duplicates | Cosine similarity, threshold from a precision/recall curve | Semantic duplicates with precision and recall | ⚪ planned |
@@ -116,12 +116,21 @@ Each stage is a standalone script. It reads from `data/`, writes small results (
 | `src/check_metadata.py` | 1 | `reports/metadata_by_class.csv`, `reports/metadata_summary.csv` |
 | `src/profile_images.py` | 1 | `outputs/profile_images.csv`, `reports/profile_summary.csv` |
 | `src/plot_profile.py` | 1 | `reports/profile_*.png` (needs `outputs/profile_images.csv`) |
+| `src/check_integrity.py` | 2 | `outputs/integrity.csv`, `reports/integrity_summary.csv` |
 
 ```bash
 uv run python src/check_metadata.py
 uv run python src/profile_images.py
 uv run python src/plot_profile.py
+uv run python src/check_integrity.py --workers 0
 ```
+
+`check_integrity.py` fully decodes every image and records two SHA-256 hashes per image: one of the file bytes, and one of the decoded pixels (after `convert("RGB")`, EXIF orientation not applied, which is what a typical training loader sees). Options:
+
+- `--workers N`: number of worker processes (default 1; `0` = all CPUs). The output is the same for any number of workers.
+- `--sample N`: check a random sample of N images (fixed seed); writes `outputs/integrity_sample.csv` only, no report.
+- `--max-fail-rate F`: stop without writing the report if more than this fraction of files fail to decode (default 0.01), since a high failure rate more likely means a bug than a broken dataset.
+
 
 ---
 
