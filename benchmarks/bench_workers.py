@@ -44,6 +44,18 @@ def cpu_name() -> str:
     return platform.machine()
 
 
+def malloc_settings() -> str:
+    """glibc malloc settings from the environment, or "default" if none are set.
+
+    glibc reads them once at process start, so the environment of this process is
+    what the timed runs used; worker processes inherit it.
+    """
+    names = sorted(k for k in os.environ if k.startswith("MALLOC_"))
+    if "GLIBC_TUNABLES" in os.environ:
+        names.append("GLIBC_TUNABLES")
+    return ";".join(f"{k}={os.environ[k]}" for k in names) or "default"
+
+
 def add_speedup(table: pd.DataFrame) -> pd.DataFrame:
     """Add speedup and efficiency against the 1-worker run of the same sample size."""
     baseline = table[table["workers"] == 1].set_index("sample")["seconds"]
@@ -96,6 +108,7 @@ def main() -> None:
         "logical_cpus": os.cpu_count(),
         "python": platform.python_version(),
         "start_method": START_METHOD,
+        "malloc": malloc_settings(),
     }
     print(" | ".join(f"{k}: {v}" for k, v in machine.items()))
 
