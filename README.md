@@ -179,7 +179,7 @@ uv run python benchmarks/plot_chunksize.py
 unset MALLOC_MMAP_THRESHOLD_ MALLOC_TRIM_THRESHOLD_
 ```
 
-**Memory allocator.** Decoding an image allocates a few large buffers. By default, glibc `malloc` adjusts its size thresholds to earlier allocations in the same process, so a process either reuses these buffers from one image to the next, or returns them to the operating system and maps fresh memory (page faults) for every image, which is slower. Which of the two a process gets depends on unrelated earlier work, such as drawing the random sample, and each worker process starts with its own state, so the 1-worker run and the workers can end up in different states. The two variables fix the thresholds (67.1 MB and 134.2 MB, well above one image's buffers), so every process reuses its buffers. glibc reads them when a process starts, so they are set in the shell, and worker processes inherit them; other C libraries (macOS, musl) ignore them. `src/check_integrity.py` itself runs with the default allocator, so its throughput can be lower than these benchmark numbers.
+**Memory allocator.** Decoding an image allocates a few large buffers. By default, glibc `malloc` adjusts its size thresholds to earlier allocations in the same process, so a process either reuses these buffers from one image to the next, or returns them to the operating system and maps fresh memory (page faults) for every image, which is slower. Which of the two a process gets depends on unrelated earlier work, such as drawing the random sample (tested in [`experiments/`](experiments/README.md#serial-throughput-and-the-memory-allocator)), and each worker process starts with its own state, so the 1-worker run and the workers can end up in different states. The two variables fix the thresholds (67.1 MB and 134.2 MB, well above one image's buffers), so every process reuses its buffers. glibc reads them when a process starts, so they are set in the shell, and worker processes inherit them; other C libraries (macOS, musl) ignore them. `src/check_integrity.py` itself runs with the default allocator, so its throughput can be lower than these benchmark numbers.
 
 ---
 
@@ -199,7 +199,7 @@ Ruff runs on every pull request through GitHub Actions ([`.github/workflows/lint
 image-dataset-audit/
 ├── .github/workflows/  # CI (lint)
 ├── src/                # one script per pipeline stage
-├── experiments/        # one-off experiments (not pipeline stages)
+├── experiments/        # one-off experiments (not pipeline stages), see experiments/README.md
 ├── benchmarks/         # timing scripts for pipeline stages (results in reports/benchmark_*)
 ├── tests/              # pytest tests
 ├── reports/            # small generated results: summaries, plots, the written report

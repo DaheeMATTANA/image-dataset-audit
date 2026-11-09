@@ -35,7 +35,7 @@ pythonpath = ["src", "benchmarks"]
 line-length = 88
 target-version = "py312"
 # Folders holding first-party modules, for import sorting
-src = [".", "src", "benchmarks"]
+src = [".", "src", "benchmarks", "experiments"]
 exclude = ["data", "reports", "scratch"]
 
 [tool.ruff.lint]
