@@ -12,6 +12,7 @@ reports/experiment_core_type.csv.
 import json
 import os
 import random
+import resource
 import subprocess
 import sys
 import time
@@ -41,7 +42,8 @@ def warmup_files(files: list[Path], sample: list[Path], size: int) -> list[Path]
 def measure(k: int, n: int, seed: int, cpu: int | None, warmup: int) -> dict:
     """Time check_integrity in a serial loop over n files.
 
-    The files are the first n of random.Random(seed).sample(files, k).
+    The files are the first n of random.Random(seed).sample(files, k). Also counts
+    minor page faults during the loop: memory the kernel had to map on first touch.
     """
     if cpu is not None and warmup:
         raise ValueError("pool workers would inherit the pinned CPU; use cpu=None")
@@ -60,17 +62,20 @@ def measure(k: int, n: int, seed: int, cpu: int | None, warmup: int) -> dict:
     for p in sample:  # warm the page cache
         p.read_bytes()
     cpus_seen = set()
+    faults_before = resource.getrusage(resource.RUSAGE_SELF).ru_minflt
     start = time.perf_counter()
     for i, p in enumerate(sample):
         check_integrity(p)
         if i % 500 == 0:
             cpus_seen.add(current_cpu())
     seconds = time.perf_counter() - start
+    faults = resource.getrusage(resource.RUSAGE_SELF).ru_minflt - faults_before
     return {
         **{"k": k, "n": n, "seed": seed, "cpu": cpu, "warmup": warmup},
         "ran_on": sorted(cpus_seen),
         "seconds": round(seconds, 2),
         "images_per_s": round(n / seconds),
+        "faults_per_image": round(faults / n),
     }
 
 
@@ -92,17 +97,19 @@ def run_case(env: dict[str, str] | None = None, **options) -> dict:
     return result
 
 
-def report(rows: list[dict], by: str, name: str) -> None:
-    """Print every run and min/median/max img/s per case; save the runs as a CSV.
+def report(rows: list[dict], by: str | list[str], name: str) -> None:
+    """Print every run and min/median/max per case; save the runs as a CSV.
 
     Saved to reports/experiment_<name>.csv, so numbers quoted in docs have a source.
     """
     import pandas as pd  # parent only, so the measured process stays minimal
 
     table = pd.DataFrame(rows).astype({"cpu": "Int64"})  # integer CPU, empty if None
-    print(table.to_string(index=False))
-    stats = table.groupby(by, dropna=False)["images_per_s"]
-    print(stats.agg(["min", "median", "max"]))
+    stats = table.groupby(by, dropna=False)[["images_per_s", "faults_per_image"]]
+    # Full column widths: long labels such as the MALLOC_* settings stay readable.
+    with pd.option_context("display.max_colwidth", None, "display.width", None):
+        print(table.to_string(index=False))
+        print(stats.agg(["min", "median", "max"]))
     out = REPORTS / f"experiment_{name}.csv"
     table.to_csv(out, index=False)
     print(f"Saved: {out}")

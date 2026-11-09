@@ -3,7 +3,8 @@
 Each case runs in a new process (run_case), with no warm-up pool. The timed files
 are the first 5,000 of random.Random(42).sample(files, k), which are the same files
 for k=5000 and k=20000: only the size of the list random.sample builds changes.
-The runs are saved to reports/experiment_sample_size.csv.
+Each run records img/s and minor page faults per image. The runs are saved to
+reports/experiment_sample_size.csv.
 
     uv run python experiments/time_sample_size_case.py
 """
