@@ -5,7 +5,8 @@ Run directly to compare core types (CPU 4 = P-core, CPU 12 = E-core on this mach
     uv run python experiments/time_serial_case.py
 
 A new process per case means no case inherits another's memory state
-(e.g. glibc malloc's). Writes nothing to the repo.
+(e.g. glibc malloc's). Each case runs REPEATS times; the runs are saved to
+reports/experiment_core_type.csv.
 """
 
 import json
@@ -17,9 +18,12 @@ import time
 from pathlib import Path
 
 from check_integrity import IMAGES, check_integrity
+from parallel_utils import parallel_map
 
-DEFAULTS = {"k": 5000, "n": 5000, "seed": 42, "cpu": None}
+REPORTS = Path(__file__).resolve().parents[1] / "reports"
+DEFAULTS = {"k": 5000, "n": 5000, "seed": 42, "cpu": None, "warmup": 0}
 CORE_TYPE_CASES = [{"cpu": 4}, {"cpu": 12}, {}]
+REPEATS = 3
 
 
 def current_cpu() -> int:
@@ -28,15 +32,31 @@ def current_cpu() -> int:
     return int(stat.rsplit(")", 1)[1].split()[36])
 
 
-def measure(k: int, n: int, seed: int, cpu: int | None) -> dict:
+def warmup_files(files: list[Path], sample: list[Path], size: int) -> list[Path]:
+    """The timed files first, then untimed files in sorted order, up to size files."""
+    timed = set(sample)
+    return (sample + [p for p in files if p not in timed])[:size]
+
+
+def measure(k: int, n: int, seed: int, cpu: int | None, warmup: int) -> dict:
     """Time check_integrity in a serial loop over n files.
 
     The files are the first n of random.Random(seed).sample(files, k).
     """
+    if cpu is not None and warmup:
+        raise ValueError("pool workers would inherit the pinned CPU; use cpu=None")
     if cpu is not None:
         os.sched_setaffinity(0, {cpu})  # same as `taskset -c`, before any timed work
     files = sorted(p for p in IMAGES.glob("*/*") if p.is_file())
     sample = random.Random(seed).sample(files, k)[:n]
+    if warmup:
+        parallel_map(
+            check_integrity,
+            warmup_files(files, sample, warmup),
+            workers=os.cpu_count() or 1,
+            desc="Warm-up",
+            unit="file",
+        )
     for p in sample:  # warm the page cache
         p.read_bytes()
     cpus_seen = set()
@@ -47,7 +67,7 @@ def measure(k: int, n: int, seed: int, cpu: int | None) -> dict:
             cpus_seen.add(current_cpu())
     seconds = time.perf_counter() - start
     return {
-        **{"k": k, "n": n, "seed": seed, "cpu": cpu},
+        **{"k": k, "n": n, "seed": seed, "cpu": cpu, "warmup": warmup},
         "ran_on": sorted(cpus_seen),
         "seconds": round(seconds, 2),
         "images_per_s": round(n / seconds),
@@ -72,11 +92,30 @@ def run_case(env: dict[str, str] | None = None, **options) -> dict:
     return result
 
 
+def report(rows: list[dict], by: str, name: str) -> None:
+    """Print every run and min/median/max img/s per case; save the runs as a CSV.
+
+    Saved to reports/experiment_<name>.csv, so numbers quoted in docs have a source.
+    """
+    import pandas as pd  # parent only, so the measured process stays minimal
+
+    table = pd.DataFrame(rows).astype({"cpu": "Int64"})  # integer CPU, empty if None
+    print(table.to_string(index=False))
+    stats = table.groupby(by, dropna=False)["images_per_s"]
+    print(stats.agg(["min", "median", "max"]))
+    out = REPORTS / f"experiment_{name}.csv"
+    table.to_csv(out, index=False)
+    print(f"Saved: {out}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:  # new process started by run_case: measure one case
         print(json.dumps(measure(**json.loads(sys.argv[1]))))
     else:
-        import pandas as pd  # parent only, so the measured process stays minimal
-
-        rows = [run_case(**case) for case in CORE_TYPE_CASES]
-        print(pd.DataFrame(rows).astype({"cpu": "Int64"}).to_string(index=False))
+        # Cases alternate (P, E, unpinned, P, ...) so slow drift doesn't hit one only.
+        rows = [
+            run_case(**case) | {"repeat": r}
+            for r in range(REPEATS)
+            for case in CORE_TYPE_CASES
+        ]
+        report(rows, by="cpu", name="core_type")
