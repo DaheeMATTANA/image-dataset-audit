@@ -85,12 +85,12 @@ Worker count, 20,000 images, chunk size 64:
 
 | Workers | Images/s | Speedup | Efficiency |
 |---|---|---|---|
-| 1 | 694 | 1.00 | 1.00 |
-| 2 | 1,381 | 1.99 | 0.99 |
-| 4 | 2,647 | 3.81 | 0.95 |
-| 6 | 3,677 | 5.29 | 0.88 |
-| 14 | 5,176 | 7.45 | 0.53 |
-| 20 | 5,279 | 7.60 | 0.38 |
+| 1 | 691 | 1.00 | 1.00 |
+| 2 | 1,307 | 1.89 | 0.95 |
+| 4 | 2,616 | 3.79 | 0.95 |
+| 6 | 3,737 | 5.41 | 0.90 |
+| 14 | 5,160 | 7.47 | 0.53 |
+| 20 | 5,276 | 7.63 | 0.38 |
 
 Speedup is relative to the 1-worker run. Efficiency is speedup divided by the number of workers, so it counts every worker as a full performance core: beyond 6 workers, additional workers run on efficiency cores or share a performance core with another worker, so on this CPU efficiency also falls for hardware reasons, not only because of overhead.
 
@@ -98,9 +98,9 @@ Chunk size (files sent to a worker at a time), 5,000 images, images/s:
 
 | Workers | 64 | 256 | 1024 |
 |---|---|---|---|
-| 2 | 1,300 | 1,254 | 1,118 |
-| 6 | 3,145 | 2,745 | 2,733 |
-| 20 | 3,717 | 3,775 | 2,463 |
+| 2 | 1,238 | 1,252 | 1,109 |
+| 6 | 3,097 | 2,811 | 2,738 |
+| 20 | 3,693 | 3,434 | 2,545 |
 
 With chunk size 1024, 5,000 images make only 5 batches, so at most 5 workers have work at a time. The 5,000-image runs at chunk size 64 in the two result files agree within 2%.
 
@@ -171,15 +171,16 @@ Timing scripts live in [`benchmarks/`](benchmarks/) and write their results to `
 | `benchmarks/plot_chunksize.py` | Speedup per worker count, one line per chunk size, with the limit set by the number of batches (largest sample only) | `reports/benchmark_chunksize_plot.png` (needs `benchmark_chunksize.csv`) |
 
 ```bash
-export MALLOC_MMAP_THRESHOLD_=67108864 MALLOC_TRIM_THRESHOLD_=134217728  # fixed malloc thresholds, see below
-uv run python benchmarks/bench_workers.py --sample 1000 5000 20000 --workers 2 4 6 14 20              # → benchmark_workers.csv
+MALLOC="MALLOC_MMAP_THRESHOLD_=16777216 MALLOC_TRIM_THRESHOLD_=8388608"  # fixed malloc thresholds, see below
+env $MALLOC uv run python benchmarks/bench_workers.py --sample 1000 5000 20000 --workers 2 4 6 14 20              # → benchmark_workers.csv
 uv run python benchmarks/plot_workers.py
-uv run python benchmarks/bench_workers.py --sample 5000 --workers 2 4 6 14 20 --chunksize 64 256 1024  # → benchmark_chunksize.csv
+env $MALLOC uv run python benchmarks/bench_workers.py --sample 5000 --workers 2 4 6 14 20 --chunksize 64 256 1024  # → benchmark_chunksize.csv
 uv run python benchmarks/plot_chunksize.py
-unset MALLOC_MMAP_THRESHOLD_ MALLOC_TRIM_THRESHOLD_
 ```
 
-**Memory allocator.** Decoding an image allocates a few large buffers. By default, glibc `malloc` adjusts its size thresholds to earlier allocations in the same process, so a process either reuses these buffers from one image to the next, or returns them to the operating system and maps fresh memory (page faults) for every image, which is slower. Which of the two a process gets depends on unrelated earlier work, such as drawing the random sample (tested in [`experiments/`](experiments/README.md#serial-throughput-and-the-memory-allocator)), and each worker process starts with its own state, so the 1-worker run and the workers can end up in different states. The two variables fix the thresholds (67.1 MB and 134.2 MB, well above one image's buffers), so every process reuses its buffers. glibc reads them when a process starts, so they are set in the shell, and worker processes inherit them; other C libraries (macOS, musl) ignore them. `src/check_integrity.py` itself runs with the default allocator, so its throughput can be lower than these benchmark numbers.
+`env $MALLOC` sets the variables for that one command only, so nothing stays set in the shell afterwards (check with `env | grep MALLOC`).
+
+**Memory allocator.** Decoding an image allocates a few large buffers. By default, glibc `malloc` adjusts its size thresholds to earlier allocations in the same process, so a process either reuses these buffers from one image to the next, or returns them to the operating system and maps fresh memory (page faults) for every image, which is slower. Which of the two a process gets depends on unrelated earlier work, such as drawing the random sample (tested in [`experiments/`](experiments/README.md#serial-throughput-and-the-memory-allocator)), and each worker process starts with its own state, so the 1-worker run and the workers can end up in different states. The two variables fix the thresholds, so every process reuses its buffers: mmap at 16.8 MB (above one decoded image of 0.8 MB, and within the 33.6 MB maximum documented for glibc) and trim at 8.4 MB (above the about 2.2 MB each image frees, while limiting the unused memory a process may keep). Both are needed; see the [threshold experiment](experiments/README.md#which-malloc-setting-removes-the-page-faults). The values are sized for Food-101's 512 px images: images with much larger decoded buffers need them measured again. glibc reads them when a process starts, so they are set on the command line, and worker processes inherit them; other C libraries (macOS, musl) ignore them. `src/check_integrity.py` itself runs with the default allocator, so its throughput can be lower than these benchmark numbers.
 
 ---
 

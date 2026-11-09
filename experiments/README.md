@@ -88,11 +88,11 @@ Memory returned to the kernel has to be mapped again, page by page, the next tim
 | 16.8 MB | default | 501 | 593 | mmap alone: worse than default |
 | default | 134.2 MB | 654 | 123 | Trim alone: most faults removed, not all |
 | 16.8 MB | 134.2 MB | 676 | 0 | Both: no faults |
-| 67.1 MB | 134.2 MB | 709 | 0 | Both, with the mmap value of the [benchmark commands](../README.md#benchmarks) |
+| 67.1 MB | 134.2 MB | 709 | 0 | Both, mmap above the documented maximum |
 | 16.8 MB | 1.0 MB | 503 | 593 | Trim below what one image frees |
 | 16.8 MB | 2.1 MB | 529 | 527 | Trim just below what one image frees |
 | 16.8 MB | 4.2 MB | 700 | 0 | Smallest tested trim value with no faults |
-| 16.8 MB | 8.4 MB | 675 | 0 | |
+| 16.8 MB | 8.4 MB | 675 | 0 | The values used in the [benchmark commands](../README.md#benchmarks) |
 
 - **Both thresholds are needed.** The rows with only one threshold set are tests, not usable settings: neither removes the faults on its own.
 - **The trim threshold must be larger than what one image frees** (about 2.2 MB): 2.1 MB still gives a fault count close to default; 4.2 MB and above give none. Larger values add no speed, but each process may keep up to that much unused memory instead of returning it.
