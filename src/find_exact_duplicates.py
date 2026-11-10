@@ -21,12 +21,13 @@ def split_kind(splits: pd.Series) -> str:
     found = set(splits)
     if found == {"train", "test"}:
         return "across train and test"
-    return f"within {found.pop()}"
+    (split,) = found
+    return f"within {split}"
 
 
 def duplicate_groups(df: pd.DataFrame, key: str) -> pd.DataFrame:
     """One row per group of two or more images sharing the value in `key`."""
-    shared = df[df.duplicated(key, keep=False)]
+    shared = df[df.duplicated(key, keep=False)].sort_values("image_id")
     return (
         shared.groupby(key)
         .agg(
@@ -61,7 +62,7 @@ def main() -> None:
     for name, key in HASHES.items():
         hashed = df.dropna(subset=[key])  # no pixel hash if a file failed to decode
         groups = duplicate_groups(hashed, key)
-        print(f"\n== {key}:{len(groups)} groups of identical {name}s")
+        print(f"\n== {key}: {len(groups)} groups of identical {name}s")
         print(summarize(groups, len(hashed)).to_string())
         out = OUTPUTS / f"exact_duplicates_{name}.csv"
         groups.to_csv(out, index=False)
