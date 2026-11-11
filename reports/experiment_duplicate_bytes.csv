@@ -1,0 +1,53 @@
+pixel_sha256,reference,image_id,category,orientation_tag_differs,rotation_differs,same_size,n_diff_bytes,exif_tags_differ,reason
+04d887a1,waffles/899285,waffles/961486,metadata,False,False,True,9,DateTime,EXIF: DateTime
+080a0907,caprese_salad/763184,caprese_salad/763201,metadata,False,False,True,4,DateTime,EXIF: DateTime
+13e7c0eb,lasagna/499765,lasagna/499859,metadata,False,False,True,4,DateTime,EXIF: DateTime
+1ea4f8d3,spaghetti_carbonara/1348593,spaghetti_carbonara/1349091,metadata,False,False,True,5,DateTime,EXIF: DateTime
+1f22b822,fried_calamari/835953,fried_calamari/881518,metadata,False,False,True,6,DateTime,EXIF: DateTime
+20eb2c53,pancakes/85516,pancakes/92527,metadata,False,False,True,5,GPSLatitude GPSLongitude,EXIF: GPSLatitude GPSLongitude
+37a0388d,clam_chowder/1783810,clam_chowder/1783836,metadata,False,False,True,4,DateTime,EXIF: DateTime
+38b74862,baby_back_ribs/620996,baby_back_ribs/620997,metadata,False,False,True,3,DateTimeDigitized,EXIF: DateTimeDigitized
+587c8d2f,strawberry_shortcake/2917154,strawberry_shortcake/2926631,metadata,False,False,True,8,DateTime,EXIF: DateTime
+6c858795,beef_carpaccio/1769984,beef_carpaccio/1801501,metadata,False,False,True,7,DateTime,EXIF: DateTime
+75af0fb2,spaghetti_carbonara/1551970,spaghetti_carbonara/1552336,metadata,False,False,True,5,DateTime,EXIF: DateTime
+76e5623b,beet_salad/2595905,beet_salad/2671983,metadata,False,False,True,3,DateTime DateTimeDigitized DateTimeOriginal,EXIF: DateTime DateTimeDigitized DateTimeOriginal
+89e0510d,french_onion_soup/1741871,french_onion_soup/1741875,metadata,False,False,True,39,DateTime,EXIF: DateTime
+9fc4b519,macarons/548231,macarons/548938,metadata,False,False,True,5,DateTimeDigitized,EXIF: DateTimeDigitized
+b947c566,panna_cotta/1565927,panna_cotta/1566367,metadata,False,False,True,3,DateTime,EXIF: DateTime
+be617bd3,edamame/1638436,edamame/1821106,metadata,False,False,True,8,DateTime,EXIF: DateTime
+c06dba0b,grilled_salmon/599021,grilled_salmon/606368,metadata,False,False,True,14,DateTimeDigitized GPSLatitude GPSLongitude,EXIF: DateTimeDigitized GPSLatitude GPSLongitude
+c27cefed,spaghetti_carbonara/501277,spaghetti_carbonara/501296,metadata,False,False,True,4,DateTimeDigitized,EXIF: DateTimeDigitized
+d08286b0,panna_cotta/2995960,panna_cotta/3011399,metadata,False,False,True,6,DateTime,EXIF: DateTime
+f4f5be1a,pad_thai/1588419,pad_thai/1843188,metadata,False,False,True,6,DateTime,EXIF: DateTime
+9c02dd7a,apple_pie/1461580,apple_pie/1469191,metadata,False,False,True,5,DateTime,EXIF: DateTime
+b7c1e805,strawberry_shortcake/587260,strawberry_shortcake/587263,metadata,False,False,True,3,DateTimeDigitized,EXIF: DateTimeDigitized
+f0187473,beef_tartare/50022,beef_tartare/50036,metadata,False,False,True,12,GPSLatitude GPSLongitude,EXIF: GPSLatitude GPSLongitude
+fd097aa4,spaghetti_bolognese/476276,spaghetti_bolognese/585440,metadata,False,False,True,7,DateTimeDigitized GPSLatitude GPSLongitude,EXIF: DateTimeDigitized GPSLatitude GPSLongitude
+41102dc9,breakfast_burrito/662420,breakfast_burrito/662423,metadata,False,False,True,4,DateTimeDigitized,EXIF: DateTimeDigitized
+41102dc9,breakfast_burrito/662420,breakfast_burrito/662424,metadata,False,False,True,4,DateTimeDigitized,EXIF: DateTimeDigitized
+650e3c9c,chocolate_cake/49494,chocolate_cake/51717,metadata,False,False,True,12,GPSLatitude GPSLongitude,EXIF: GPSLatitude GPSLongitude
+650e3c9c,chocolate_cake/49494,chocolate_cake/55122,metadata,False,False,True,11,GPSLatitude GPSLongitude,EXIF: GPSLatitude GPSLongitude
+04cbbbab,greek_salad/857079,greek_salad/862426,metadata,False,False,True,7,DateTime,EXIF: DateTime
+065886cb,french_onion_soup/1103636,french_onion_soup/1103647,metadata,False,False,True,4,DateTime,EXIF: DateTime
+0bb854d4,garlic_bread/2028045,garlic_bread/2028072,metadata,False,False,True,4,DateTime,EXIF: DateTime
+1b8ff718,chicken_wings/820377,chicken_wings/834669,metadata,False,False,True,7,DateTime,EXIF: DateTime
+2d0d372c,onion_rings/2093337,onion_rings/2093352,metadata,False,False,True,5,DateTime,EXIF: DateTime
+2f0a05f5,fried_rice/2820757,fried_rice/2899815,metadata,False,False,True,3,DateTime DateTimeDigitized DateTimeOriginal,EXIF: DateTime DateTimeDigitized DateTimeOriginal
+3292b4de,baby_back_ribs/3124916,baby_back_ribs/3125728,metadata,False,False,True,7,DateTime,EXIF: DateTime
+41d4d229,cup_cakes/1044152,cup_cakes/1082593,metadata,True,False,False,,Orientation,Photoshop; XMP
+42e06d05,falafel/3572759,falafel/3882357,metadata,False,False,True,7,DateTime,EXIF: DateTime
+55d63440,lasagna/1729580,lasagna/1737120,metadata,False,False,True,6,DateTime,EXIF: DateTime
+57cbf55c,hummus/620711,hummus/622847,metadata,False,False,True,7,DateTime,EXIF: DateTime
+584ee818,baby_back_ribs/3217591,baby_back_ribs/3265047,metadata,False,False,True,6,DateTime,EXIF: DateTime
+629842f7,grilled_salmon/1574226,grilled_salmon/1574235,metadata,False,False,True,4,DateTime,EXIF: DateTime
+63b6cfd2,beignets/1996069,beignets/1997437,metadata,False,False,False,,DateTime GPSProcessingMethod,EXIF: DateTime GPSProcessingMethod
+73eaa443,nachos/814609,nachos/814617,metadata,False,False,True,2,DateTime,EXIF: DateTime
+841ac3c2,chicken_quesadilla/1579819,chicken_quesadilla/1590716,metadata,False,False,True,5,DateTime,EXIF: DateTime
+88f1ebe0,prime_rib/680463,prime_rib/680470,metadata,False,False,True,3,DateTimeDigitized,EXIF: DateTimeDigitized
+8ee3614b,lasagna/2399534,lasagna/2399575,metadata,False,False,True,3,DateTime,EXIF: DateTime
+c239caac,deviled_eggs/2595914,deviled_eggs/2671994,metadata,False,False,True,3,DateTime DateTimeDigitized DateTimeOriginal,EXIF: DateTime DateTimeDigitized DateTimeOriginal
+c51262ad,gnocchi/1706892,gnocchi/1706909,metadata,False,False,True,6,DateTime,EXIF: DateTime
+d030d92a,caesar_salad/3627235,caesar_salad/3627251,metadata,False,False,True,4,,EXIF: unused bytes
+e23299a9,deviled_eggs/1486281,deviled_eggs/1527126,metadata,False,False,True,8,DateTime,EXIF: DateTime
+f064fb24,prime_rib/721232,prime_rib/721245,metadata,False,False,True,4,DateTimeDigitized,EXIF: DateTimeDigitized
+fc82229e,foie_gras/1721369,foie_gras/1721540,metadata,False,False,True,4,DateTime,EXIF: DateTime

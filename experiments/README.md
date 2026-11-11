@@ -7,6 +7,7 @@ One-off investigations, separate from the pipeline. Each one answers a single qu
 | [JPEG vs PNG](#jpeg-vs-png) | How do JPEG quality and repeated re-saving change file size and pixel values? | `jpeg_png_experiment.py` | `reports/jpeg_quality_iteration_experiment.png` |
 | [Hashing and corruption checks](#hashing-and-corruption-checks) | Which changes do a file hash and a pixel hash detect, and which damaged files does each Pillow check catch? | `hashing_experiment.py` | Printed tables only |
 | [Serial throughput and the memory allocator](#serial-throughput-and-the-memory-allocator) | Why does the same serial loop over the same files run at two different speeds? | `time_serial_case.py`, `time_warmup_case.py`, `time_sample_size_case.py`, `time_malloc_threshold_case.py` | `reports/experiment_*.csv` |
+| [Why pixel-identical copies differ in bytes](#why-pixel-identical-copies-differ-in-bytes) | When two files decode to the same pixels but have different file hashes, what differs? | `duplicate_bytes_experiment.py` | `reports/experiment_duplicate_bytes.csv` |
 
 Conventions:
 
@@ -110,4 +111,48 @@ uv run python experiments/time_serial_case.py            # core type → reports
 uv run python experiments/time_warmup_case.py            # warm-up size → reports/experiment_warmup.csv
 uv run python experiments/time_sample_size_case.py       # sample size → reports/experiment_sample_size.csv
 uv run python experiments/time_malloc_threshold_case.py  # malloc thresholds → reports/experiment_malloc_threshold.csv
+```
+
+---
+
+## Why pixel-identical copies differ in bytes
+
+**Question.** Stage 2 finds groups of images with the same pixel hash. In some groups the files are not byte-identical (different file hashes). What differs between those files, if the decoded pixels are the same?
+
+**What it does.** Takes the pixel-hash groups with more than one file hash (from `annotations/exact_duplicate_review.csv`) and compares each copy with its group's first image. Each file is read and parsed once. A JPEG file is a sequence of blocks: metadata blocks (EXIF, XMP, Photoshop, ICC, comments), which the decoder skips, and decoder blocks (quantization tables, Huffman tables, frame header, image data). For each pair:
+
+- **Category:** `identical`; `metadata` (only metadata blocks differ); `coding` (same quantization tables, other decoder blocks differ: likely the same image compressed another way); `quantization` (quantization tables differ: likely saved again). The categories describe what differs, not the file's history.
+- **Reason:** which metadata blocks differ and, inside EXIF, which tags differ. When EXIF bytes differ but no tag value does, and the differing bytes are zero in one copy, the reason is `unused bytes`.
+- **Flags:** different file sizes; orientation tag differs as stored; the copies would display rotated differently in software that applies the tag (missing or invalid values count as upright).
+
+**Observed** (50 groups, 52 compared pairs):
+
+| Category | Pairs |
+|---|---|
+| identical | 0 |
+| metadata | 52 |
+| coding | 0 |
+| quantization | 0 |
+
+In every pair the decoder blocks, including the encoded image data, are byte-identical: the copies differ only in metadata.
+
+| Reason | Pairs |
+|---|---|
+| EXIF date tags only (`DateTime`, `DateTimeDigitized`, `DateTimeOriginal`) | 43 |
+| EXIF GPS position tags (with or without a date tag) | 6 |
+| EXIF date tag and GPS method text | 1 |
+| Photoshop and XMP blocks (EXIF identical) | 1 |
+| EXIF unused bytes (no tag value differs) | 1 |
+
+- In the 50 pairs of same-size files, 2 to 39 bytes differ (median 5).
+- File sizes differ in 2 pairs, in both because a metadata block is longer in one copy.
+- The orientation tag differs in 1 pair (present in one copy, missing in the other), but both values mean upright: 0 pairs would display rotated differently.
+- Some files have damaged EXIF tags, which Pillow skips; a difference inside a skipped tag cannot be named. The category is not affected: it compares bytes.
+
+The report holds tag and block names only, no metadata values (dates, GPS positions).
+
+**Run** (reads `annotations/exact_duplicate_review.csv` and the images in `data/`):
+
+```bash
+uv run python experiments/duplicate_bytes_experiment.py
 ```

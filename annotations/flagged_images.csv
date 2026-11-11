@@ -2,3 +2,9 @@ image_id,reason,found_by,labeled_by,note
 bread_pudding/1375816,non_food,profile_images:mode_L,manual,people
 lasagna/3787908,non_food,profile_images:mode_L,manual,text
 steak/1340977,non_food,profile_images:mode_L,manual,people
+prime_rib/680463,non_food,find_exact_duplicates:pixel,manual,people
+prime_rib/680470,non_food,find_exact_duplicates:pixel,manual,people
+hamburger/3578279,non_food,find_exact_duplicates:pixel,manual,text
+hamburger/3783650,non_food,find_exact_duplicates:pixel,manual,text
+steak/97656,wrong_label,find_exact_duplicates:pixel,manual,correct: prime_rib
+pancakes/2619752,wrong_label,find_exact_duplicates:pixel,manual,correct: omelette
