@@ -28,7 +28,7 @@ import pandas as pd
 from PIL import ExifTags, Image, JpegImagePlugin
 
 from check_integrity import IMAGES
-from dataset_utils import ROOT
+from dataset_utils import REPORTS, ROOT
 
 REVIEW = ROOT / "annotations" / "exact_duplicate_review.csv"
 CATEGORIES = ["identical", "metadata", "coding", "quantization"]
@@ -271,6 +271,10 @@ def main() -> None:
 
     print("\n== Details: compared pairs")
     print(pairs.to_string(index=False))
+
+    # Whole numbers; empty where the sizes differ
+    pairs["n_diff_bytes"] = pairs["n_diff_bytes"].astype("Int64")
+    pairs.to_csv(REPORTS / "experiment_duplicate_bytes.csv", index=False)
 
 
 if __name__ == "__main__":
