@@ -1,9 +1,9 @@
-hash,kind,groups,images,extra_copies,extra_copies_pct,test_images,test_images_pct
-file,within train,6,12,6,0.006,0,0.0
-file,within test,0,0,0,0.0,0,0.0
-file,across train and test,2,4,2,0.002,2,0.008
-file,all,8,16,8,0.008,2,0.008
-pixel,within train,32,66,34,0.034,0,0.0
-pixel,within test,4,8,4,0.004,8,0.032
-pixel,across train and test,22,44,22,0.022,22,0.087
-pixel,all,58,118,60,0.059,30,0.119
+hash,kind,groups,images,extra_copies,extra_copies_pct,test_images,test_images_pct,label_conflict_groups
+file,within train,6,12,6,0.006,0,0.0,2
+file,within test,0,0,0,0.0,0,0.0,0
+file,across train and test,2,4,2,0.002,2,0.008,0
+file,all,8,16,8,0.008,2,0.008,2
+pixel,within train,32,66,34,0.034,0,0.0,2
+pixel,within test,4,8,4,0.004,8,0.032,0
+pixel,across train and test,22,44,22,0.022,22,0.087,0
+pixel,all,58,118,60,0.059,30,0.119,2
