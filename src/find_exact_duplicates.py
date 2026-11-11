@@ -48,13 +48,15 @@ def duplicate_groups(df: pd.DataFrame, key: str) -> pd.DataFrame:
 
 def summarize(groups: pd.DataFrame, n_images: int, n_test: int) -> pd.DataFrame:
     """Per kind, plus an "all" row: groups, images, extra copies (images a dedup
-    would remove) and test images in these groups, with their percentages."""
+    would remove), test images in these groups with their percentages, and label
+    conflicts (groups whose images carry more than one class)."""
     summary = (
         groups.groupby("kind")
         .agg(
             groups=("size", "size"),
             images=("size", "sum"),
             test_images=("n_test", "sum"),
+            label_conflict_groups=("n_classes", lambda s: int((s > 1).sum())),
         )
         .reindex(KINDS, fill_value=0)
     )
@@ -93,6 +95,7 @@ def main() -> None:
         "extra_copies_pct",
         "test_images",
         "test_images_pct",
+        "label_conflict_groups",
     ]
     out = REPORTS / "exact_duplicates_summary.csv"
     report[columns].to_csv(out, index=False)
