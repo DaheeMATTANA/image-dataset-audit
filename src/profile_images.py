@@ -12,7 +12,7 @@ import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 
-from dataset_utils import DATA, OUTPUTS, REPORTS, load_meta
+from image_dataset_audit.dataset import IMAGES, OUTPUTS, REPORTS, load_meta
 
 
 def profile_file(path: Path) -> dict:
@@ -100,7 +100,7 @@ def summarize(df: pd.DataFrame) -> dict:
 
 
 def main() -> None:
-    df = build_profile(DATA / "images")
+    df = build_profile(IMAGES)
     summary = summarize(df)
     summary_df = pd.DataFrame(
         {

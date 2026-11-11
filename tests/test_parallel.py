@@ -1,4 +1,4 @@
-from parallel_utils import parallel_map
+from image_dataset_audit.parallel import parallel_map
 
 
 def square(x: int) -> int:

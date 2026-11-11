@@ -18,11 +18,11 @@ from pathlib import Path
 
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+from check_integrity import check_integrity
+from image_dataset_audit.dataset import IMAGES
+from image_dataset_audit.parallel import START_METHOD, parallel_map
 
-from check_integrity import IMAGES, check_integrity  # noqa: E402
-from parallel_utils import START_METHOD, parallel_map  # noqa: E402
+ROOT = Path(__file__).resolve().parents[1]
 
 SEED = 42
 DEFAULT_SAMPLES = [5000]

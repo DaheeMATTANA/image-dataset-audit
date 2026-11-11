@@ -247,7 +247,7 @@ Ruff runs on every pull request through GitHub Actions ([`.github/workflows/lint
 ```
 image-dataset-audit/
 ├── .github/workflows/  # CI (lint)
-├── src/                # one script per pipeline stage
+├── src/                # one script per pipeline stage; shared helpers in src/image_dataset_audit/
 ├── experiments/        # one-off experiments (not pipeline stages), see experiments/README.md
 ├── benchmarks/         # timing scripts for pipeline stages (results in reports/benchmark_*)
 ├── tests/              # pytest tests

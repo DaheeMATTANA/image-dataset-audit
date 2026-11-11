@@ -21,10 +21,9 @@ import pandas as pd
 import PIL
 from PIL import Image, ImageFile
 
-from dataset_utils import DATA, OUTPUTS, REPORTS, load_meta
-from parallel_utils import parallel_map
+from image_dataset_audit.dataset import IMAGES, OUTPUTS, REPORTS, load_meta
+from image_dataset_audit.parallel import parallel_map
 
-IMAGES = DATA / "images"
 SEED = 42
 
 # Truncated files must raise an error, never be silently padded.

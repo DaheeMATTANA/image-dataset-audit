@@ -28,8 +28,8 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-# Scripts are plain modules, not a package: make them importable in tests
-pythonpath = ["src", "benchmarks"]
+# src/ is importable through the editable install; benchmark scripts are not
+pythonpath = ["benchmarks"]
 
 [tool.ruff]
 line-length = 88
