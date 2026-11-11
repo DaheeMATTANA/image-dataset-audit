@@ -18,8 +18,9 @@ import sys
 import time
 from pathlib import Path
 
-from check_integrity import IMAGES, check_integrity
-from parallel_utils import parallel_map
+from check_integrity import check_integrity
+from image_dataset_audit.dataset import IMAGES
+from image_dataset_audit.parallel import parallel_map
 
 REPORTS = Path(__file__).resolve().parents[1] / "reports"
 DEFAULTS = {"k": 5000, "n": 5000, "seed": 42, "cpu": None, "warmup": 0}

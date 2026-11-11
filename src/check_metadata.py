@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-from dataset_utils import DATA, REPORTS, load_meta
+from image_dataset_audit.dataset import IMAGES, REPORTS, load_meta
 
 
 def scan_actual_files(images_dir: Path) -> tuple[set[str], Counter[str], int]:
@@ -44,7 +44,7 @@ def main() -> None:
 
     # check 4. compare meta with the actual files
     meta_ids = train_ids | test_ids
-    actual_ids, exts, n_files = scan_actual_files(DATA / "images")
+    actual_ids, exts, n_files = scan_actual_files(IMAGES)
     missing = meta_ids - actual_ids
     unlisted = actual_ids - meta_ids
 

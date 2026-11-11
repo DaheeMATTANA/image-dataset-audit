@@ -14,7 +14,7 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap, LogNorm
 from matplotlib.ticker import StrMethodFormatter
 
-from dataset_utils import OUTPUTS, REPORTS
+from image_dataset_audit.dataset import OUTPUTS, REPORTS
 
 # Same colors as experiments/jpeg_png_experiment.py
 SPLIT_COLORS = {"train": "#2a78d6", "test": "#eb6834"}

@@ -27,8 +27,7 @@ import numpy as np
 import pandas as pd
 from PIL import ExifTags, Image, JpegImagePlugin
 
-from check_integrity import IMAGES
-from dataset_utils import REPORTS, ROOT
+from image_dataset_audit.dataset import IMAGES, REPORTS, ROOT
 
 REVIEW = ROOT / "annotations" / "exact_duplicate_review.csv"
 CATEGORIES = ["identical", "metadata", "coding", "quantization"]

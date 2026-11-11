@@ -12,7 +12,7 @@ writes the counts per hash and kind to reports/exact_duplicates_summary.csv.
 
 import pandas as pd
 
-from dataset_utils import OUTPUTS, REPORTS
+from image_dataset_audit.dataset import OUTPUTS, REPORTS
 
 HASHES = {"file": "file_sha256", "pixel": "pixel_sha256"}
 KINDS = ["within train", "within test", "across train and test"]
