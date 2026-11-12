@@ -153,6 +153,23 @@ With chunk size 1024, 5,000 images make only 5 batches, so at most 5 workers hav
 
 Plots: [worker count](reports/benchmark_workers_plot.png), [chunk size](reports/benchmark_chunksize_plot.png). Full results: [`benchmark_workers.csv`](reports/benchmark_workers.csv), [`benchmark_chunksize.csv`](reports/benchmark_chunksize.csv).
 
+### Benchmark: threads vs processes
+
+Script: [`benchmarks/bench_threads.py`](benchmarks/bench_threads.py). It runs the same `parallel_map(check_integrity, ...)` call with worker threads (one process) or worker processes, on the same fixed-seed sample of 5,000 images, chunk size 64. Each case runs in a new Python process; other conditions as above. With 1 worker, both run the same serial loop.
+
+| Workers | Threads, images/s | Speedup | Processes, images/s | Speedup |
+|---|---|---|---|---|
+| 1 | 687 | 1.00 | 687 | 1.00 |
+| 2 | 1,350 | 1.97 | 1,256 | 1.83 |
+| 4 | 2,330 | 3.39 | 2,329 | 3.39 |
+| 6 | 2,731 | 3.98 | 3,083 | 4.49 |
+| 14 | 1,765 | 2.57 | 3,713 | 5.41 |
+| 20 | 1,202 | 1.75 | 3,565 | 5.19 |
+
+All threads in a process share one interpreter lock (the GIL): only the thread holding it runs Python code. In `check_integrity`, reading the file, hashing and JPEG decoding release the lock; the Python code around them (opening the file, building the result row) holds it. Up to 4 workers, threads match processes. Threads reach their highest throughput at 6 workers, which bounds the time each image holds the lock at about 1 / 2,731 s ≈ 0.37 ms (about a quarter of the 1.46 ms per image in the serial loop). Beyond 6 workers, throughput with threads falls, while processes, each with its own lock, keep scaling to 14 workers. Every run produces the same output as the serial loop (`identical_output`). For this CPU-bound stage the pipeline uses processes.
+
+Plot: [threads vs processes](reports/benchmark_threads_plot.png). Full results: [`benchmark_threads.csv`](reports/benchmark_threads.csv).
+
 ---
 
 ## Getting started
@@ -218,6 +235,8 @@ Timing scripts live in [`benchmarks/`](benchmarks/) and write their results to `
 | `benchmarks/bench_workers.py` | `check_integrity` throughput for given sample sizes, worker counts and chunk sizes, against a 1-worker baseline (one run per configuration, warm page cache, pool start-up included; each row records the `malloc` settings used) | `reports/benchmark_workers.csv` (one chunk size) or `reports/benchmark_chunksize.csv` (several) |
 | `benchmarks/plot_workers.py` | Throughput and efficiency per worker count, one line per sample size | `reports/benchmark_workers_plot.png` (needs `benchmark_workers.csv`) |
 | `benchmarks/plot_chunksize.py` | Speedup per worker count, one line per chunk size, with the limit set by the number of batches (largest sample only) | `reports/benchmark_chunksize_plot.png` (needs `benchmark_chunksize.csv`) |
+| `benchmarks/bench_threads.py` | `check_integrity` throughput with worker threads vs worker processes, against a serial loop (one new process per case, one run per case, warm page cache, pool start-up included) | `reports/benchmark_threads.csv` |
+| `benchmarks/plot_threads.py` | Throughput per worker count, one line for threads and one for processes | `reports/benchmark_threads_plot.png` (needs `benchmark_threads.csv`) |
 
 ```bash
 MALLOC="MALLOC_MMAP_THRESHOLD_=16777216 MALLOC_TRIM_THRESHOLD_=8388608"  # fixed malloc thresholds, see below
@@ -225,6 +244,8 @@ env $MALLOC uv run python benchmarks/bench_workers.py --sample 1000 5000 20000 -
 uv run python benchmarks/plot_workers.py
 env $MALLOC uv run python benchmarks/bench_workers.py --sample 5000 --workers 2 4 6 14 20 --chunksize 64 256 1024  # → benchmark_chunksize.csv
 uv run python benchmarks/plot_chunksize.py
+env $MALLOC uv run python benchmarks/bench_threads.py                                                           # → benchmark_threads.csv
+uv run python benchmarks/plot_threads.py
 ```
 
 `env $MALLOC` sets the variables for that one command only, so nothing stays set in the shell afterwards (check with `env | grep MALLOC`).
