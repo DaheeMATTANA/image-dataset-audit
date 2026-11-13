@@ -1,6 +1,7 @@
 # image-dataset-audit
 
 [![lint](https://github.com/DaheeMATTANA/image-dataset-audit/actions/workflows/lint.yml/badge.svg)](https://github.com/DaheeMATTANA/image-dataset-audit/actions/workflows/lint.yml)
+[![tests](https://github.com/DaheeMATTANA/image-dataset-audit/actions/workflows/tests.yml/badge.svg)](https://github.com/DaheeMATTANA/image-dataset-audit/actions/workflows/tests.yml)
 
 A reproducible data-quality pipeline for image datasets. It checks dataset integrity, finds exact, near- and semantic duplicates, detects train/test leakage, and measures how much leakage changes a model's accuracy.
 
@@ -262,13 +263,13 @@ uv run ruff format .    # format
 uv run pytest           # tests
 ```
 
-Ruff runs on every pull request through GitHub Actions ([`.github/workflows/lint.yml`](.github/workflows/lint.yml)). Changes go through pull requests to `master`.
+Ruff and pytest run on every pull request through GitHub Actions ([`lint.yml`](.github/workflows/lint.yml), [`tests.yml`](.github/workflows/tests.yml)). The dataset is not available there, so tests that need it are skipped. Changes go through pull requests to `master`.
 
 ### Project structure
 
 ```
 image-dataset-audit/
-├── .github/workflows/  # CI (lint)
+├── .github/workflows/  # CI (lint, tests)
 ├── src/                # one script per pipeline stage; shared helpers in src/image_dataset_audit/
 ├── experiments/        # one-off experiments (not pipeline stages), see experiments/README.md
 ├── benchmarks/         # timing scripts for pipeline stages (results in reports/benchmark_*)
