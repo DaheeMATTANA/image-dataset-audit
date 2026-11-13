@@ -11,20 +11,15 @@ overwrites a chunksize comparison).
 import argparse
 import os
 import platform
-import random
-import sys
 import time
 from pathlib import Path
 
 import pandas as pd
 
 from check_integrity import check_integrity
-from image_dataset_audit.dataset import IMAGES
+from image_dataset_audit.dataset import REPORTS, sample_images
 from image_dataset_audit.parallel import START_METHOD, parallel_map
 
-ROOT = Path(__file__).resolve().parents[1]
-
-SEED = 42
 DEFAULT_SAMPLES = [5000]
 # Worker counts worth trying on this machine (i7-13650HX: 6 P-cores + 8 E-cores,
 # 20 logical CPUs): 6 = all P-cores, 14 = all physical cores, 20 = all logical CPUs
@@ -112,12 +107,9 @@ def main() -> None:
     }
     print(" | ".join(f"{k}: {v}" for k, v in machine.items()))
 
-    files = sorted(p for p in IMAGES.glob("*/*") if p.is_file())
-    if not files:
-        sys.exit(f"No files found under {IMAGES}")
     # One shuffled list; each sample is a prefix of it, so smaller samples are
     # subsets of larger ones and a single warm-up covers them all.
-    order = random.Random(SEED).sample(files, min(max(args.sample), len(files)))
+    order = sample_images(max(args.sample))
     sizes = sorted({min(n, len(order)) for n in args.sample})
 
     parallel_map(
@@ -168,7 +160,7 @@ def main() -> None:
     print(table.drop(columns=list(machine)).to_string(index=False))
 
     name = "chunksize" if len(chunksizes) > 1 else "workers"
-    out = ROOT / "reports" / f"benchmark_{name}.csv"
+    out = REPORTS / f"benchmark_{name}.csv"
     out.parent.mkdir(exist_ok=True)
     table.to_csv(out, index=False)
     print(f"Saved: {out}")

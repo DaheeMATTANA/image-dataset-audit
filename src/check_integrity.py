@@ -11,7 +11,6 @@ With --sample N: outputs/integrity_sample.csv only (no report).
 import argparse
 import hashlib
 import os
-import random
 import sys
 import time
 from pathlib import Path
@@ -21,10 +20,14 @@ import pandas as pd
 import PIL
 from PIL import Image, ImageFile
 
-from image_dataset_audit.dataset import IMAGES, OUTPUTS, REPORTS, load_meta
+from image_dataset_audit.dataset import (
+    OUTPUTS,
+    REPORTS,
+    list_images,
+    load_meta,
+    sample_images,
+)
 from image_dataset_audit.parallel import parallel_map
-
-SEED = 42
 
 # Truncated files must raise an error, never be silently padded.
 # Set explicitly (not just checked) so the behavior never depends on defaults,
@@ -130,11 +133,7 @@ def main() -> None:
     args = parse_args()
     workers = os.cpu_count() if args.workers == 0 else args.workers  # 0 = use all CPUs
 
-    files = sorted(p for p in IMAGES.glob("*/*") if p.is_file())
-    if not files:
-        sys.exit(f"No files found under {IMAGES}")
-    if args.sample is not None:
-        files = random.Random(SEED).sample(files, min(args.sample, len(files)))
+    files = list_images() if args.sample is None else sample_images(args.sample)
 
     start = time.perf_counter()
     rows = parallel_map(
