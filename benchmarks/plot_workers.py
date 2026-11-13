@@ -5,14 +5,14 @@ compared by plot_chunksize.py.
 """
 
 import sys
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-CSV = ROOT / "reports" / "benchmark_workers.csv"
-OUT = ROOT / "reports" / "benchmark_workers_plot.png"
+from image_dataset_audit.dataset import REPORTS
+
+CSV = REPORTS / "benchmark_workers.csv"
+OUT = REPORTS / "benchmark_workers_plot.png"
 
 # Hardware boundaries of this machine (i7-13650HX), drawn as reference lines.
 BOUNDARIES = {6: "all P-cores", 14: "all physical cores"}

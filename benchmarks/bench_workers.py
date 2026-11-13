@@ -17,10 +17,8 @@ from pathlib import Path
 import pandas as pd
 
 from check_integrity import check_integrity
-from image_dataset_audit.dataset import sample_images
+from image_dataset_audit.dataset import REPORTS, sample_images
 from image_dataset_audit.parallel import START_METHOD, parallel_map
-
-ROOT = Path(__file__).resolve().parents[1]
 
 DEFAULT_SAMPLES = [5000]
 # Worker counts worth trying on this machine (i7-13650HX: 6 P-cores + 8 E-cores,
@@ -162,7 +160,7 @@ def main() -> None:
     print(table.drop(columns=list(machine)).to_string(index=False))
 
     name = "chunksize" if len(chunksizes) > 1 else "workers"
-    out = ROOT / "reports" / f"benchmark_{name}.csv"
+    out = REPORTS / f"benchmark_{name}.csv"
     out.parent.mkdir(exist_ok=True)
     table.to_csv(out, index=False)
     print(f"Saved: {out}")

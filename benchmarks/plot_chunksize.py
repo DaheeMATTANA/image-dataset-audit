@@ -2,14 +2,14 @@
 
 import math
 import sys
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-CSV = ROOT / "reports" / "benchmark_chunksize.csv"
-OUT = ROOT / "reports" / "benchmark_chunksize_plot.png"
+from image_dataset_audit.dataset import REPORTS
+
+CSV = REPORTS / "benchmark_chunksize.csv"
+OUT = REPORTS / "benchmark_chunksize_plot.png"
 
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]  # one fixed color per chunksize (up to 3)
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
