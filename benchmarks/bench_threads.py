@@ -13,38 +13,27 @@ import hashlib
 import json
 import os
 import platform
-import random
 import subprocess
 import sys
 import time
-from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
 
 from bench_workers import cpu_name, malloc_settings
 from check_integrity import check_integrity
-from image_dataset_audit.dataset import IMAGES, REPORTS
+from image_dataset_audit.dataset import REPORTS, sample_images
 from image_dataset_audit.parallel import START_METHOD, parallel_map
 
-SEED = 42
 # 6 = all P-cores, 14 = all physical cores, 20 = all logical CPUs (i7-13650HX);
 # same set as reports/benchmark_workers.csv, so process rows can be compared.
 DEFAULT_WORKERS = [1, 2, 4, 6, 14, 20]
 KINDS = ["thread", "process"]
 
 
-def sample_files(n: int) -> list[Path]:
-    """The same fixed-seed random sample of n files, in every process."""
-    files = sorted(p for p in IMAGES.glob("*/*") if p.is_file())
-    if not files:
-        sys.exit(f"No files found under {IMAGES}")
-    return random.Random(SEED).sample(files, min(n, len(files)))
-
-
 def measure(kind: str, workers: int, n: int) -> dict:
     """Time parallel_map(check_integrity) over the sample in this process."""
-    sample = sample_files(n)
+    sample = sample_images(n)  # fixed seed: the same files in every process
     start = time.perf_counter()
     rows = parallel_map(
         check_integrity, sample, workers=workers, threads=(kind == "thread")
@@ -115,7 +104,7 @@ def main() -> None:
     }
     print(" | ".join(f"{k}: {v}" for k, v in machine.items()))
 
-    for p in sample_files(args.sample):  # warm the page cache (shared by processes)
+    for p in sample_images(args.sample):  # warm the page cache (shared by processes)
         p.read_bytes()
 
     cases = [{"kind": "serial", "workers": 1, "n": args.sample}] + [
