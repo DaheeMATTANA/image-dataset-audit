@@ -8,6 +8,7 @@ One-off investigations, separate from the pipeline. Each one answers a single qu
 | [Hashing and corruption checks](#hashing-and-corruption-checks) | Which changes do a file hash and a pixel hash detect, and which damaged files does each Pillow check catch? | `hashing_experiment.py` | Printed tables only |
 | [Serial throughput and the memory allocator](#serial-throughput-and-the-memory-allocator) | Why does the same serial loop over the same files run at two different speeds? | `time_serial_case.py`, `time_warmup_case.py`, `time_sample_size_case.py`, `time_malloc_threshold_case.py` | `reports/experiment_*.csv` |
 | [Why pixel-identical copies differ in bytes](#why-pixel-identical-copies-differ-in-bytes) | When two files decode to the same pixels but have different file hashes, what differs? | `duplicate_bytes_experiment.py` | `reports/experiment_duplicate_bytes.csv` |
+| [Truncated hash collisions](#truncated-hash-collisions) | How many bits of a hash does an index need before different images share a value by chance? | `truncated_hash_experiment.py` | `reports/experiment_truncated_hash.csv` |
 
 Conventions:
 
@@ -155,4 +156,53 @@ The report holds tag and block names only, no metadata values (dates, GPS positi
 
 ```bash
 uv run python experiments/duplicate_bytes_experiment.py
+```
+
+---
+
+## Truncated hash collisions
+
+**Question.** An index of hashes could store only the first bits of each SHA-256 to save memory. How many bits does it need before different images start sharing a value by chance, at Food-101's size and at 10M and 1B images?
+
+**What it does.** Reads `file_sha256` and `pixel_sha256` from `outputs/integrity.csv` (stage 2), keeps the first N bits of each (N = 20, 24, 28, 32, 64, 256; one hex character holds 4 bits) and counts image pairs that share them. Pairs whose full 256-bit hashes also match are identical images; the others are chance collisions. Each count is compared with the expected number of chance collisions among n hashes of N bits:
+
+```
+expected = n (n − 1) / 2  ÷  2^N
+         = number of pairs × chance that one pair of different images matches
+```
+
+Fewer bits on the same images give as many expected collisions as 32 bits on a larger dataset: at 101,000 images, 28 bits behave like 32 bits at about 400,000 images, 24 bits like about 1.6M, 20 bits like about 6.5M. These rows check the formula on large measured counts. At 10M and 1B images there is no data: the table gives the formula only, for 32, 64 and 256 bits.
+
+**Observed** (101,000 images; chance pairs, expected in brackets):
+
+| Bits | File hash | Pixel hash |
+|---|---|---|
+| 20 | 4,927 (4,864) | 4,833 (4,864) |
+| 24 | 307 (304) | 309 (304) |
+| 28 | 23 (19) | 23 (19) |
+| 32 | 3 (1.19) | 4 (1.19) |
+| 64 | 0 (1 in 3.6 billion) | 0 (1 in 3.6 billion) |
+| 256 | 0 | 0 |
+
+Identical pairs, at every width: 8 for the file hash, 62 for the pixel hash (the pixel-hash groups include copies that differ only in metadata bytes; see [Why pixel-identical copies differ in bytes](#why-pixel-identical-copies-differ-in-bytes)).
+
+- At 20, 24 and 28 bits, every measured count is within one standard deviation of the expected value (√expected: about 70, 17 and 4).
+- At 32 bits the counts are small (3 and 4 against 1.19), where a few pairs more or fewer than expected are common.
+
+**Expected at larger sizes** (formula only, the same for both hashes; below 1, the value is about the chance of seeing even one chance pair):
+
+| Images | 32 bits | 64 bits | 256 bits |
+|---|---|---|---|
+| 101,000 | 1.19 | 1 in 3.6 billion | < 1 in a trillion |
+| 10M | 11,642 | 1 in 369,000 | < 1 in a trillion |
+| 1B | 116 million | 1 in 37 | < 1 in a trillion |
+
+The number of pairs grows with the square of the number of images, so 100× more images give about 10,000× more chance collisions at the same width. A 32-bit prefix already gives chance collisions at Food-101's size; 64 bits keep them unlikely at 10M but not at 1B; the full 256-bit hash keeps them negligible at every size shown.
+
+Data: [`experiment_truncated_hash.csv`](../reports/experiment_truncated_hash.csv). One row per hash, width and dataset size. `pairs_sharing_bits` = `identical_pairs` + `chance_pairs`; these three are empty in the 10M and 1B rows. `expected_chance_pairs` is stored unrounded.
+
+**Run** (reads `outputs/integrity.csv`, written by `src/check_integrity.py`; a few seconds):
+
+```bash
+uv run python experiments/truncated_hash_experiment.py
 ```
