@@ -1,0 +1,6 @@
+key,value,entries,key_bytes,value_bytes,slot_bytes,bytes_per_entry,gb_at_10m,gb_at_1b
+hex string,ID string,100940,105.0,59.4,38.1,202.5,2.02,202.5
+32-byte digest,ID string,100940,65.0,59.4,51.9,176.3,1.76,176.3
+8-byte prefix,ID string,100940,41.0,59.4,51.9,152.3,1.52,152.3
+4-byte prefix,ID string,100936,37.0,59.4,51.9,148.3,1.48,148.3
+32-byte digest,row number,100940,65.0,28.0,51.9,144.9,1.45,144.9
