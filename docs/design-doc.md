@@ -1,4 +1,4 @@
-# Design doc: Phase 1, Food-101 audit
+# Design doc: Food-101 audit
 
 *Status: draft v0.1. Sections 3–5 cover the stages implemented so far (profile, integrity check, exact duplicates) and the exact-duplicate hash index; later stages are added as they are implemented.*
 
@@ -14,7 +14,7 @@
 
 ## 1. Problem and constraints
 
-**Problem.** Food-101 is a widely used image classification benchmark. Before a dataset is used for training or evaluation, a curation pipeline needs a precise, file-level picture of its contents. This phase builds that picture by auditing the dataset for:
+**Problem.** Food-101 is a widely used image classification benchmark. Before a dataset is used for training or evaluation, a curation pipeline needs a precise, file-level picture of its contents. This pipeline builds that picture by auditing the dataset for:
 
 - corrupted or unreadable files
 - exact duplicates (identical decoded pixels; byte-identical files are a subset)
@@ -43,7 +43,7 @@ and then quantifies **the effect of cross-split duplicates on evaluation accurac
 
 - **Hardware:** one laptop, CPU only: Intel Core i7-13650HX (14 cores, 20 threads), 30 GB RAM. Embedding extraction runs on an on-demand cloud GPU.
 - **Budget:** minimal, amount still to set. Estimated GPU cost: under ~$2 per embedding run (section 2).
-- **Milestone:** audit report and this design doc v1 at the end of Phase 1.
+- **Milestone:** audit report and this design doc v1 at the end of the audit.
 - **Data is read-only:** nothing in `data/` is modified; decisions are recorded in a table, never applied by deleting files.
 - **Reproducibility:** every number comes from a script that runs end to end; all per-image results share the key `image_id`.
 
@@ -156,7 +156,7 @@ Actual time and memory next to the estimates in section 2; every gap larger than
 
 N = number of images. Per-image costs grow with N; pairwise costs grow with N².
 
-| Quantity | Grows with | 1× (Food-101, 101k) | 10× (~1M) | 100× (~10M, Phase 2) |
+| Quantity | Grows with | 1× (Food-101, 101k) | 10× (~1M) | 100× (~10M) |
 |---|---|---|---|---|
 | Size on disk | N | 5.12 GB | ~51 GB | ~512 GB |
 | Whole dataset decoded | N | 71 GB | ~710 GB | ~7.1 TB |
