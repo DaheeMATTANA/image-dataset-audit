@@ -10,10 +10,11 @@ One-off investigations, separate from the pipeline. Each one answers a single qu
 | [Why pixel-identical copies differ in bytes](#why-pixel-identical-copies-differ-in-bytes) | When two files decode to the same pixels but have different file hashes, what differs? | `duplicate_bytes_experiment.py` | `reports/experiment_duplicate_bytes.csv` |
 | [Truncated hash collisions](#truncated-hash-collisions) | How many bits of a hash does an index need before different images share a value by chance? | `truncated_hash_experiment.py` | `reports/experiment_truncated_hash.csv` |
 | [Hash index entry size](#hash-index-entry-size) | How much memory does one entry of an in-memory hash index take, and does a smaller entry format change the total much? | `index_entry_size_experiment.py` | `reports/experiment_index_entry_size.csv` |
+| [dHash on edited copies](#dhash-on-edited-copies) | How far does a perceptual hash move when an image is resized, re-encoded, cropped or rotated, compared with unrelated images? | `dhash_experiment.py` | `reports/experiment_dhash.csv` |
 
 Conventions:
 
-- **Two kinds of scripts.** `jpeg_png_experiment.py` and `hashing_experiment.py` are exploration files with `# %%` cells, meant to be run cell by cell (VS Code, `ipykernel`). The `time_*_case.py` scripts are run whole from the terminal.
+- **Two kinds of scripts.** `jpeg_png_experiment.py`, `hashing_experiment.py` and `dhash_experiment.py` are exploration files with `# %%` cells, meant to be run cell by cell (VS Code, `ipykernel`). The `time_*_case.py` scripts are run whole from the terminal.
 - **Timed cases run in a new process,** never in an interactive kernel: earlier work in the same process (for example the state of glibc `malloc`) changes the speed.
 - **Run timings on AC power, with nothing else running.** On battery the laptop lowers CPU clock speeds, and other programs compete for cores and for the CPU's power budget; either makes cases slower and less stable.
 - **Outputs.** Intermediate files go to `scratch/` (git-ignored). Results quoted in this file are saved in `reports/`.
@@ -245,4 +246,39 @@ Data: [`experiment_index_entry_size.csv`](../reports/experiment_index_entry_size
 
 ```bash
 uv run python experiments/index_entry_size_experiment.py
+```
+
+---
+
+## dHash on edited copies
+
+**Question.** A perceptual hash should stay close when an image is edited but still shows the same photo, and be far for a different photo. How far does a 64-bit dHash move for common edits, compared with unrelated images?
+
+**What it does.** dHash converts an image to grayscale, resizes it to 9 × 8 pixels (Lanczos filter) and compares each pixel with its left neighbor: 8 rows × 8 comparisons give 64 bits, 1 where the right pixel is brighter. The Hamming distance between two hashes is the number of bits that differ: 0 for the same hash, 32 on average for two random 64-bit values.
+
+The script computes dHash with NumPy and checks it against `imagehash.dhash`: same 64 bits on all 7 images, in all 4 rotations. It then compares one image (`apple_pie/1005649`) with four edited versions of it (resized from 512 to 256 px on the long side, re-saved as JPEG at quality 50, cropped by 10% on each side, rotated 90°), another image of the same class (`apple_pie/1011328`) and an image of another class (`pizza/1001116`). Each comparison is also made rotation-aware: the second image is hashed at 0°, 90°, 180° and 270°, and the smallest distance is kept.
+
+**Observed** (Hamming distance to the original, out of 64 bits):
+
+| Compared image | Distance | Best of 4 rotations |
+|---|---|---|
+| Resized to 256 px | 0 | 0 |
+| Re-saved at JPEG quality 50 | 0 | 0 |
+| Cropped 10% per side | 14 | 14 |
+| Rotated 90° | 33 | 0 |
+| Same class, other image | 27 | 27 |
+| Other class | 41 | 31 |
+
+- **Resizing and re-encoding change no bit.** Each of the 9 × 8 pixels averages a block of thousands of original pixels; these edits move the averages too little to change which neighbor is brighter.
+- **Cropping changes 14 bits.** Pixel values stay the same, but each of the 9 × 8 cells now covers a different part of the photo.
+- **A 90° rotation gives 33, as far as the unrelated images.** dHash compares left and right neighbors; after rotation, these are different pairs of cells. Hashing all 4 rotations brings it to 0: rotating in 90° steps only moves pixels, so turning the copy back gives the original pixels.
+- **Rotation-aware matching also lowers unrelated pairs:** the other-class image goes from 41 to 31. The smallest of 4 distances is never larger than one of them, so rotated copies are caught at the cost of more unrelated pairs falling under a given threshold.
+- One image per case: the distances show how each edit acts on dHash, not how often each edit occurs in Food-101. No near-duplicate threshold is chosen here.
+
+Data: [`experiment_dhash.csv`](../reports/experiment_dhash.csv). One row per compared image; `distance` is to the original as is, `best_of_4_rotations` the smallest distance over the 4 rotations of the compared image.
+
+**Run** (reads 3 images from `data/`; about a second). Open `experiments/dhash_experiment.py` in VS Code and run the cells in order, or:
+
+```bash
+uv run python experiments/dhash_experiment.py
 ```
