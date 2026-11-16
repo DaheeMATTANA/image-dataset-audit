@@ -1,0 +1,7 @@
+case,distance,best_of_4_rotations
+resized to 256 px,0,0
+re-encoded at q50,0,0
+cropped 10% per side,14,14
+rotated 90°,33,0
+"same class, other image",27,27
+other class,41,31
