@@ -118,7 +118,6 @@ The ~20× gap exists only for a client sending one request at a time. Filling th
 
 *Still to decide, as the later stages are implemented:*
 
-- *Exact duplicates: MD5 vs SHA-256 vs comparing file sizes first (SHA-256 is used; the others were not compared).*
 - *Near-duplicates: dHash vs pHash; Hamming distance threshold.*
 - *Semantic duplicates: which embedding model; cosine threshold chosen from a precision/recall curve.*
 - *Search: exact all-pairs in blocks vs approximate nearest neighbors (FAISS IVF, HNSW).*
@@ -130,6 +129,7 @@ The ~20× gap exists only for a client sending one request at a time. Filling th
 | Decision | Choice | Evidence |
 |---|---|---|
 | Definition of an exact duplicate | Same pixel hash (SHA-256 of the RGB pixels after `convert("RGB")`, no EXIF rotation applied); byte-identical files are reported as a subset | 58 pixel-hash groups vs 8 file-hash groups [measured]; in all 52 compared pairs of pixel-identical files with different bytes, only metadata differs (dates, GPS, Photoshop/XMP blocks) [experiment] |
+| Hash function | SHA-256 | MD5 allows deliberately built collisions, which matters once data comes from the open web; on this CPU (SHA extensions), SHA-256 is also faster: ~44 vs ~97 µs per 50.7 KB [timed manually] |
 | Decode passes | One full-decode pass computes the corruption check, the file hash and the pixel hash | ~1.46 ms per image for all three together, one process (687 img/s on 5,000 images) [measured] |
 | Parallelism | Processes, 14 workers for the full run | The check is CPU-bound: CPU time = wall time on 2,000 images [timed manually]. Threads match processes up to 4 workers, peak at 6 (2,731 img/s) and fall after; processes reach 3,713 img/s at 14 [measured] |
 | Hash width | Full 256-bit hashes | At 32 bits, different images already share a value at Food-101's size: 3 (file hash) and 4 (pixel hash) chance pairs [experiment]; see section 6 for 10M and 1B |
