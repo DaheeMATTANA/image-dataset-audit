@@ -9,6 +9,7 @@ One-off investigations, separate from the pipeline. Each one answers a single qu
 | [Serial throughput and the memory allocator](#serial-throughput-and-the-memory-allocator) | Why does the same serial loop over the same files run at two different speeds? | `time_serial_case.py`, `time_warmup_case.py`, `time_sample_size_case.py`, `time_malloc_threshold_case.py` | `reports/experiment_*.csv` |
 | [Why pixel-identical copies differ in bytes](#why-pixel-identical-copies-differ-in-bytes) | When two files decode to the same pixels but have different file hashes, what differs? | `duplicate_bytes_experiment.py` | `reports/experiment_duplicate_bytes.csv` |
 | [Truncated hash collisions](#truncated-hash-collisions) | How many bits of a hash does an index need before different images share a value by chance? | `truncated_hash_experiment.py` | `reports/experiment_truncated_hash.csv` |
+| [Hash index entry size](#hash-index-entry-size) | How much memory does one entry of an in-memory hash index take, and does a smaller entry format change the total much? | `index_entry_size_experiment.py` | `reports/experiment_index_entry_size.csv` |
 
 Conventions:
 
@@ -205,4 +206,43 @@ Data: [`experiment_truncated_hash.csv`](../reports/experiment_truncated_hash.csv
 
 ```bash
 uv run python experiments/truncated_hash_experiment.py
+```
+
+---
+
+## Hash index entry size
+
+**Question.** Finding exact duplicates needs an index from pixel hash to image: a hash already in the index is a duplicate. Kept in memory as a Python `dict`, how many bytes does one entry take, and how much do smaller key or value formats save?
+
+**What it does.** Builds a `dict` from `pixel_sha256` to image for all images in `outputs/integrity.csv`, in 5 formats, and measures the bytes per entry with `sys.getsizeof`, in three parts:
+
+- **Key:** the hash object. Hex string: the 64-character text stored in the CSV. 32-byte digest: the same hash as raw bytes. 8- and 4-byte prefixes: the first 64 and 32 bits of the digest.
+- **Value:** the image. ID string: the image ID (e.g. `apple_pie/1005649`). Row number: the image's position in the main table, which is needed to look up the ID.
+- **Slot:** the dict's own table, one row per entry pointing to the key and the value. `sys.getsizeof` on a dict counts only this table, so key and value objects are measured one by one.
+
+Identical images share a key, so the dict holds one entry per unique hash: 100,940 for 101,000 images. The projections at 10M and 1B multiply the bytes per entry by the number of images.
+
+**Observed** (bytes per entry):
+
+| Key | Value | Entries | Key | Value | Slot | Total | At 10M | At 1B |
+|---|---|---|---|---|---|---|---|---|
+| hex string | ID string | 100,940 | 105.0 | 59.4 | 38.1 | 202.5 | 2.02 GB | 202.5 GB |
+| 32-byte digest | ID string | 100,940 | 65.0 | 59.4 | 51.9 | 176.3 | 1.76 GB | 176.3 GB |
+| 8-byte prefix | ID string | 100,940 | 41.0 | 59.4 | 51.9 | 152.3 | 1.52 GB | 152.3 GB |
+| 4-byte prefix | ID string | 100,936 | 37.0 | 59.4 | 51.9 | 148.3 | 1.48 GB | 148.3 GB |
+| 32-byte digest | row number | 100,940 | 65.0 | 28.0 | 51.9 | 144.9 | 1.45 GB | 144.9 GB |
+
+- **Most of an entry is Python overhead, not data.** Every object carries a fixed header of about 33 to 41 bytes whatever its content: a 32-byte digest takes 65 bytes, a 4-byte prefix 37, a 17-character ID 58.
+- **Smaller formats change the total by at most 18%** against the full digest with the ID string (176.3 → 144.9 bytes, with a row number as value). Truncating the key to 4 bytes saves 28 bytes per entry and merges different images: 100,936 entries instead of 100,940, the 4 chance pairs of the pixel hash at 32 bits (see [Truncated hash collisions](#truncated-hash-collisions)).
+- **Text keys use smaller table rows** (38.1 vs 51.9 bytes). A `str` object stores its own hash, so a dict whose keys are all strings keeps two pointers per row (16 bytes) instead of the hash and two pointers (24 bytes). The 40 extra bytes of the hex string itself outweigh the gain.
+- **At 10M, every format fits in memory on one machine** (1.45–2.02 GB). At 1B, none does (145–203 GB).
+
+The projections are approximate. The dict reserves its table in steps (powers of two), so slot bytes per entry change with the number of entries, and they assume IDs as long as Food-101's.
+
+Data: [`experiment_index_entry_size.csv`](../reports/experiment_index_entry_size.csv). One row per format. Byte columns are averages per entry; `gb_at_10m` and `gb_at_1b` are in GB (10⁹ bytes).
+
+**Run** (reads `outputs/integrity.csv`, written by `src/check_integrity.py`; a few seconds):
+
+```bash
+uv run python experiments/index_entry_size_experiment.py
 ```
