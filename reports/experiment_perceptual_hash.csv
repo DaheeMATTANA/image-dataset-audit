@@ -1,0 +1,7 @@
+case,dhash,dhash_best_of_4,ahash,ahash_best_of_4,phash,phash_best_of_4
+resized to 256 px,0,0,0,0,0,0
+re-encoded at q50,0,0,0,0,0,0
+cropped 10% per side,14,14,11,11,12,12
+rotated 90°,33,0,32,0,28,0
+"same class, other image",27,27,29,29,32,32
+other class,41,31,37,29,36,34

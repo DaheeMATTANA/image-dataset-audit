@@ -1,10 +1,11 @@
 # %% [markdown]
-# # dHash by hand: which edits keep an image close to the original?
+# # Perceptual hashes on edited copies: aHash, dHash and pHash
 # One Food-101 image, four edited versions of it and two other images.
-# Each is reduced to a 64-bit dHash; the Hamming distance (bits that differ)
-# to the original says how close dHash considers them.
+# Each is reduced to a 64-bit hash (own dHash, imagehash's aHash and pHash);
+# the Hamming distance (bits that differ) to the original says how close
+# each hash considers them.
 #
-# Writes reports/experiment_dhash.csv.
+# Writes reports/experiment_perceptual_hash.csv.
 
 # %%
 import io
@@ -77,6 +78,24 @@ def rotations(img: Image.Image) -> list[Image.Image]:
 
 
 # %% [markdown]
+# ## aHash and pHash from imagehash
+# Converted to int, like dHash, so the same `hamming` compares all three.
+
+
+# %%
+def ahash(img: Image.Image) -> int:
+    """64-bit average hash from imagehash, as an int."""
+    return int(str(imagehash.average_hash(img)), 16)
+
+
+def phash(img: Image.Image) -> int:
+    """64-bit DCT-based perceptual hash from imagehash, as an int."""
+    return int(str(imagehash.phash(img)), 16)
+
+
+HASHES = {"dhash": dhash, "ahash": ahash, "phash": phash}
+
+# %% [markdown]
 # ## Check against the imagehash library
 # Same 64 bits as imagehash.dhash on every image, in all 4 rotations.
 
@@ -90,26 +109,26 @@ for name, img in {"original": original, **cases}.items():
 
 # %% [markdown]
 # ## Distances to the original
-# `distance`: the image as it is. `best_of_4_rotations`: the smallest distance
-# over the image at 0°, 90°, 180° and 270°.
+# `dhash`, `ahash`, `phash`: distance to the original as is.
+# `<hash>_best_of_4`: the smallest distance over the image at 0°, 90°, 180° and 270°.
 
 # %%
-base = dhash(original)
+base = {name: fn(original) for name, fn in HASHES.items()}
+
 rows = []
-for name, img in cases.items():
-    rows.append(
-        {
-            "case": name,
-            "distance": hamming(base, dhash(img)),
-            "best_of_4_rotations": min(
-                hamming(base, dhash(turned)) for turned in rotations(img)
-            ),
-        }
-    )
+for case, img in cases.items():
+    turned = rotations(img)  # index 0 is the image as it is
+    row = {"case": case}
+    for name, fn in HASHES.items():
+        distances = [hamming(base[name], fn(t)) for t in turned]
+        row[name] = distances[0]
+        row[f"{name}_best_of_4"] = min(distances)
+    rows.append(row)
+
 table = pd.DataFrame(rows)
 print(table.to_string(index=False))
 
-out = REPORTS / "experiment_dhash.csv"
+out = REPORTS / "experiment_perceptual_hash.csv"
 table.to_csv(out, index=False)
 print(f"Saved: {out}")
 
@@ -119,4 +138,23 @@ print(f"Saved: {out}")
 # Trade-off: we catch rotated copies (33 -> 0) but false matches are possible
 # with unrelated images.
 
+# %% [markdown]
+# ## Gap per hash
+
 # %%
+# Rotated copy left out: no hash survives a 90° rotation (28-33 bits, near the
+# ~32 of unrelated hashes); rotation is handled by the best-of-4 columns.
+different_image = ["same class, other image", "other class"]
+same_image = [c for c in cases if c not in different_image and c != "rotated 90°"]
+
+by_case = table.set_index("case")
+# gap = (smallest "different image" distance) - (largest "same image" distance)
+gap = by_case.loc[different_image].min() - by_case.loc[same_image].max()
+print(gap.to_string())
+
+# %% [markdown]
+# Gap (smallest different-image distance - largest same-image distance, rotated
+# copy left out): 13 / 18 / 20 bits for dHash / aHash / pHash, set by the crop
+# and the same-class image. Best of 4 rotations brings the rotated copy to 0
+# with the same gaps. One image only: the gaps describe this image, not the
+# hashes in general.
