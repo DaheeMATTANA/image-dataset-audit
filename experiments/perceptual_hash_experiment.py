@@ -11,11 +11,11 @@
 import io
 
 import imagehash
-import numpy as np
 import pandas as pd
 from PIL import Image
 
 from image_dataset_audit.dataset import IMAGES, REPORTS
+from image_dataset_audit.perceptual_hash import dhash, hamming
 
 # %% [markdown]
 # ## The six cases
@@ -47,26 +47,12 @@ cases = {
 }
 
 # %% [markdown]
-# ## dHash, Hamming distance and rotations
+# ## Rotations
+# dHash and the Hamming distance come from the package
+# (`image_dataset_audit.perceptual_hash`).
 
 
 # %%
-def dhash(img: Image.Image) -> int:
-    """64-bit difference hash: is each pixel brighter than its left neighbor?"""
-    small = img.convert("L").resize((9, 8), Image.Resampling.LANCZOS)
-    pixels = np.asarray(small)  # shape (8, 9): 8 rows, 9 columns
-    bits = pixels[:, 1:] > pixels[:, :-1]  # shape (8, 8): right > left
-    value = 0
-    for bit in bits.flatten():  # row by row, first bit is the highest
-        value = value * 2 + int(bit)
-    return value
-
-
-def hamming(a: int, b: int) -> int:
-    """Number of bit positions where a and b differ."""
-    return (a ^ b).bit_count()
-
-
 def rotations(img: Image.Image) -> list[Image.Image]:
     """The image at 0°, 90°, 180° and 270°."""
     turns = [
