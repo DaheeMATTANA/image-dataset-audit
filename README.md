@@ -7,7 +7,7 @@ A reproducible data-quality pipeline for image datasets. It checks dataset integ
 
 The first target is [Food-101](https://data.vision.ee.ethz.ch/cvl/datasets_extra/food-101/) (101,000 images, 101 classes), a standard benchmark used from training tutorials to the evaluation suites of large vision-language models. The pipeline is designed to scale to datasets of ~10M images and, later, to video.
 
-> **Status:** in progress. Stages 1 (dataset profile) and 2 (corruption and exact duplicates) are done; see [Results](#results-food-101). Stage 3 (near-duplicates) is next.
+> **Status:** in progress. Stages 1 (dataset profile) and 2 (corruption and exact duplicates) are done; see [Results](#results-food-101). Stage 3 (near-duplicates) is in progress: perceptual hashes are computed for every image.
 
 ---
 
@@ -25,7 +25,7 @@ The first target is [Food-101](https://data.vision.ee.ethz.ch/cvl/datasets_extra
 |---|---|---|---|---|
 | 1 | Dataset profile | Split and metadata checks; formats, color modes, resolutions, file sizes | Data profile | ✅ done |
 | 2 | Corruption and exact duplicates | Full decode with Pillow, SHA-256 hashing | Corruption and exact-duplicate report | ✅ done |
-| 3 | Near-duplicates | Perceptual hashing (dHash, pHash), Hamming distance, 200 hand-labeled pairs | Near-duplicate list with measured precision | ⚪ planned |
+| 3 | Near-duplicates | Perceptual hashing (aHash, dHash, pHash), Hamming distance, 200 hand-labeled pairs | Near-duplicate list with measured precision | 🟡 in progress |
 | 4 | Embeddings | Pretrained vision encoder (open_clip) | Embeddings for the full dataset | ⚪ planned |
 | 5 | Semantic duplicates | Cosine similarity, threshold from a precision/recall curve | Semantic duplicates with precision and recall | ⚪ planned |
 | 6 | Nearest-neighbor search at scale | Exact vs approximate search (FAISS) | Speed/recall trade-off table | ⚪ planned |
@@ -212,6 +212,7 @@ Each stage is a standalone script. It reads from `data/`, writes small results (
 | `src/plot_profile.py` | 1 | `reports/profile_*.png` (needs `outputs/profile_images.csv`) |
 | `src/check_integrity.py` | 2 | `outputs/integrity.csv`, `reports/integrity_summary.csv` |
 | `src/find_exact_duplicates.py` | 2 | `outputs/exact_duplicates_file.csv`, `outputs/exact_duplicates_pixel.csv`, `reports/exact_duplicates_summary.csv` (needs `outputs/integrity.csv`) |
+| `src/compute_perceptual_hashes.py` | 3 | `outputs/perceptual_hashes.csv` |
 
 ```bash
 uv run python src/check_metadata.py
@@ -219,6 +220,7 @@ uv run python src/profile_images.py
 uv run python src/plot_profile.py
 uv run python src/check_integrity.py --workers 0
 uv run python src/find_exact_duplicates.py
+uv run python src/compute_perceptual_hashes.py --workers 0
 ```
 
 `check_integrity.py` fully decodes every image and records two SHA-256 hashes per image: one of the file bytes, and one of the decoded pixels (after `convert("RGB")`, EXIF orientation not applied, which is what a typical training loader sees). Options:
@@ -226,6 +228,12 @@ uv run python src/find_exact_duplicates.py
 - `--workers N`: number of worker processes (default 1; `0` = all CPUs). The output is the same for any number of workers.
 - `--sample N`: check a random sample of N images (fixed seed); writes `outputs/integrity_sample.csv` only, no report.
 - `--max-fail-rate F`: stop without writing the report if more than this fraction of files fail to decode (default 0.01), since a high failure rate more likely means a bug than a broken dataset.
+
+`compute_perceptual_hashes.py` fully decodes every image (same rule as `check_integrity.py`) and records three 64-bit perceptual hashes per image (aHash, dHash, pHash) as 16-character hex strings; read them back as strings, since a 64-bit value can exceed a signed 64-bit integer. Options:
+
+- `--workers N`: number of worker processes (default 1; `0` = all CPUs). The output is the same for any number of workers.
+- `--sample N`: hash a random sample of N images (fixed seed); writes `outputs/perceptual_hashes_sample.csv`.
+- `--max-fail-rate F`: exit with an error if more than this fraction of files fail (default 0.01).
 
 ### Benchmarks
 
