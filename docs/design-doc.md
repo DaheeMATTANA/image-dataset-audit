@@ -1,6 +1,6 @@
 # Design doc: Food-101 audit
 
-*Status: draft v0.1. Sections 3–5 cover the stages implemented so far (profile, integrity check, exact duplicates) and the exact-duplicate hash index; later stages are added as they are implemented.*
+*Status: draft v0.1. Sections 3–5 cover the stages implemented so far (profile, integrity check, exact duplicates, perceptual hashes) and the exact-duplicate hash index; later stages are added as they are implemented.*
 
 *Source labels:*
 *- **[measured]**: written by a script in `src/` or `benchmarks/` to `reports/`.*
@@ -131,6 +131,7 @@ The ~20× gap exists only for a client sending one request at a time. Filling th
 | Definition of an exact duplicate | Same pixel hash (SHA-256 of the RGB pixels after `convert("RGB")`, no EXIF rotation applied); byte-identical files are reported as a subset | 58 pixel-hash groups vs 8 file-hash groups [measured]; in all 52 compared pairs of pixel-identical files with different bytes, only metadata differs (dates, GPS, Photoshop/XMP blocks) [experiment] |
 | Hash function | SHA-256 | MD5 allows deliberately built collisions, which matters once data comes from the open web; on this CPU (SHA extensions), SHA-256 is also faster: ~44 vs ~97 µs per 50.7 KB [timed manually] |
 | Decode passes | One full-decode pass computes the corruption check, the file hash and the pixel hash | ~1.46 ms per image for all three together, one process (687 img/s on 5,000 images) [measured] |
+| Perceptual hashes | Separate pass with its own decode, not merged into the integrity pass | Hashing is a different concern from integrity, and the hash stage is rerun while hashes and thresholds are tuned; the second decode costs ~20 s at 101,000 images [timed manually]. At 10M images (~37 min per extra decode pass), one decode shared by all CPU signals is the better choice (section 6) |
 | Parallelism | Processes, 14 workers for the full run | The check is CPU-bound: CPU time = wall time on 2,000 images [timed manually]. Threads match processes up to 4 workers, peak at 6 (2,731 img/s) and fall after; processes reach 3,713 img/s at 14 [measured] |
 | Hash width | Full 256-bit hashes | At 32 bits, different images already share a value at Food-101's size: 3 (file hash) and 4 (pixel hash) chance pairs [experiment]; see section 6 for 10M and 1B |
 | Hash index at Food-101's size | In-memory group-by on the per-image hash table (`outputs/integrity.csv`) | 100,940 unique pixel hashes; as a Python dict, ~18 MB (176 bytes per entry) [experiment]: far below the 30 GB of RAM |
@@ -142,10 +143,10 @@ Actual time and memory next to the estimates in section 2; every gap larger than
 | Pass | Estimate | Measured | Gap explained |
 |---|---|---|---|
 | Header profile | n/a | 14 s cold, ~5 s warm [timed manually] | baseline |
-| Full decode + file and pixel SHA-256 | ~3–5 ms per image; ~5–8 min (1 process) | ~1.46 ms per image (687 img/s, 1 process, 5,000 images) [measured], ~2.5 min for 101,000 images by extrapolation; 22.4 s with 14 processes, cold page cache [timed manually] | 2–3× below the estimate, which was a generic decode cost, not derived from a measurement on these 512 px images |
+| Full decode + file and pixel SHA-256 | ~3–5 ms per image; ~5–8 min (1 process) | ~1.46 ms per image (687 img/s, 1 process, 5,000 images) [measured], ~2.5 min for 101,000 images by extrapolation; 22.4 s with 14 processes, cold page cache [timed manually]; 21.4 s (14) and 19.0 s (20 processes), warm page cache [timed manually] | 2–3× below the estimate, which was a generic decode cost, not derived from a measurement on these 512 px images |
 | SHA-256 | ~10–20 s (separate pass) | not timed separately: runs inside the decode pass | n/a |
 | Hash index in memory | ~165 bytes per entry (mock estimate) | 176 bytes per entry (32-byte digest, image ID as value) [experiment] | within 7% |
-| Perceptual hash | up to ~5–8 min | | |
+| Perceptual hash (aHash, dHash, pHash; own full decode) | up to ~5–8 min | 38.6 s with 14 processes, 33.3 s with 20, warm page cache [timed manually]; 1.8× the integrity check under the same conditions | The estimate is for 1 process; the 1-process cost per image is not measured yet |
 | Embeddings (GPU) | ~2–4 min | | |
 
 ---
@@ -162,6 +163,7 @@ N = number of images. Per-image costs grow with N; pairwise costs grow with N².
 | Whole dataset decoded | N | 71 GB | ~710 GB | ~7.1 TB |
 | Embeddings, 512 dims, float32 | N | ~207 MB | ~2.1 GB | ~21 GB (close to the 30 GB of RAM) |
 | Full decode + both hashes, 14 processes | N | 22 s [timed manually] | ~4 min | ~37 min |
+| Perceptual hashes (separate decode pass), 14 processes | N | 39 s [timed manually] | ~6.5 min | ~64 min |
 | Hash index, Python dict (32-byte digest + image ID) | N | ~18 MB | ~176 MB | ~1.8 GB [experiment, projected] |
 | Expected chance collisions, 32-bit hash | N² | 1.19 (3–4 observed) | ~116 | ~11,642 [experiment] |
 | Embeddings, one GPU | N | ~2–4 min | ~20–40 min | ~3–7 h |
