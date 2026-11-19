@@ -11,6 +11,7 @@ One-off investigations, separate from the pipeline. Each one answers a single qu
 | [Truncated hash collisions](#truncated-hash-collisions) | How many bits of a hash does an index need before different images share a value by chance? | `truncated_hash_experiment.py` | `reports/experiment_truncated_hash.csv` |
 | [Hash index entry size](#hash-index-entry-size) | How much memory does one entry of an in-memory hash index take, and does a smaller entry format change the total much? | `index_entry_size_experiment.py` | `reports/experiment_index_entry_size.csv` |
 | [Perceptual hashes on edited copies](#perceptual-hashes-on-edited-copies) | How far do aHash, dHash and pHash move when an image is resized, re-encoded, cropped or rotated, compared with unrelated images? | `perceptual_hash_experiment.py` | `reports/experiment_perceptual_hash.csv` |
+| [Hamming distances: Python loop vs NumPy](#hamming-distances-python-loop-vs-numpy) | How fast can all pairs of 64-bit hashes be compared in a pure Python loop, and with NumPy? | `time_hamming_case.py` | `reports/experiment_hamming_loop.csv` |
 
 Conventions:
 
@@ -288,4 +289,36 @@ Data: [`experiment_perceptual_hash.csv`](../reports/experiment_perceptual_hash.c
 
 ```bash
 uv run python experiments/perceptual_hash_experiment.py
+```
+
+---
+
+## Hamming distances: Python loop vs NumPy
+
+**Question.** Finding near-duplicates by brute force means computing the Hamming distance of every pair of perceptual hashes: n (n − 1) / 2 pairs, 5,100,449,500 at 101,000 images. How fast is that comparison in a pure Python loop, and with NumPy?
+
+**What it does.** Draws 5,000 dHashes from `outputs/perceptual_hashes.csv` (random rows, seed 42) and compares all 12,497,500 pairs in two ways. Both count the pairs per distance (0 to 64):
+
+- **Python loop:** two nested loops over Python `int`s, `(a ^ b).bit_count()` for each pair.
+- **NumPy:** one row at a time. The hash of image i is XORed with the hashes of all later images in one call (`h[i] ^ h[i + 1 :]` on a `uint64` array), then `np.bitwise_count` gives the distances and `np.bincount` adds them to the counts.
+
+Each run is a new process, 3 runs per method, alternating. Loading the hashes is not timed. The script checks that both methods give the same counts in every run.
+
+**Observed** (5,000 images, 12,497,500 pairs; median of 3 runs, min–max in brackets):
+
+| Method | Time | Pairs per second |
+|---|---|---|
+| Python loop | 0.758 s (0.755–0.759) | 16.5 million (16.47–16.56) |
+| NumPy | 0.031 s (0.030–0.033) | 403 million (382–420) |
+
+- **NumPy is 24.5× faster on the same pairs**, with identical counts. The Python loop goes through the interpreter for every pair: each XOR creates a new `int` object, and `.bit_count()` is a method call. NumPy stores the hashes as raw 8-byte values side by side, makes one call per row, and runs the per-pair work in compiled code, with no object per pair.
+- **Extrapolated at these speeds**, one hash at 101,000 images takes about 5.2 min with the loop and 13 s with NumPy; at 10M images (5 × 10¹³ pairs), about 840 h and 34 h. The loop's cost is per pair, so its extrapolation holds at any size. NumPy also pays a fixed cost per row (the Python calls), shared by the pairs in that row: rows are longer at 101,000 images (50,500 hashes on average, against 2,500 here), so its extrapolated times are upper bounds.
+- Even with NumPy, the time grows with the square of the number of images: 100× more images give about 10,000× more pairs. At 10M images, comparing all pairs still takes tens of hours per hash at NumPy's speed.
+
+Data: [`experiment_hamming_loop.csv`](../reports/experiment_hamming_loop.csv). One row per run; `pairs_per_s` = `pairs` / `seconds`, computed before `seconds` is rounded.
+
+**Run** (reads `outputs/perceptual_hashes.csv`, written by `src/compute_perceptual_hashes.py`; a few seconds):
+
+```bash
+uv run python experiments/time_hamming_case.py
 ```
