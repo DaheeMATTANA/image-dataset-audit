@@ -6,7 +6,7 @@ Run directly to compare core types (CPU 4 = P-core, CPU 12 = E-core on this mach
 
 A new process per case means no case inherits another's memory state
 (e.g. glibc malloc's). Each case runs REPEATS times; the runs are saved to
-reports/experiment_core_type.csv.
+scratch/experiment_core_type.csv, or to reports/ with --save.
 """
 
 import json
@@ -19,7 +19,7 @@ import time
 from pathlib import Path
 
 from check_integrity import check_integrity
-from image_dataset_audit.dataset import IMAGES, REPORTS
+from image_dataset_audit.dataset import IMAGES, REPORTS, SCRATCH
 from image_dataset_audit.parallel import parallel_map
 
 DEFAULTS = {"k": 5000, "n": 5000, "seed": 42, "cpu": None, "warmup": 0}
@@ -86,7 +86,7 @@ def run_case(env: dict[str, str] | None = None, **options) -> dict:
     """
     case = {**DEFAULTS, **options}
     out = subprocess.run(
-        [sys.executable, __file__, json.dumps(case)],
+        [sys.executable, __file__, "--case", json.dumps(case)],
         env={**os.environ, **(env or {})},
         stdout=subprocess.PIPE,  # stderr not captured: a crash shows its traceback
         text=True,
@@ -97,10 +97,27 @@ def run_case(env: dict[str, str] | None = None, **options) -> dict:
     return result
 
 
-def report(rows: list[dict], by: str | list[str], name: str) -> None:
+def parse_save(description: str | None) -> bool:
+    """The --save option of the run you start (the per-case processes take --case).
+
+    Shared by the time_*_case scripts that use run_case and report.
+    """
+    import argparse  # parent only, so the measured process loads the same modules
+
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="write the CSV to reports/ (committed results); default: scratch/",
+    )
+    return parser.parse_args().save
+
+
+def report(rows: list[dict], by: str | list[str], name: str, save: bool) -> None:
     """Print every run and min/median/max per case; save the runs as a CSV.
 
-    Saved to reports/experiment_<name>.csv, so numbers quoted in docs have a source.
+    Saved to scratch/experiment_<name>.csv, or with save=True to
+    reports/experiment_<name>.csv, so numbers quoted in docs have a source.
     """
     import pandas as pd  # parent only, so the measured process stays minimal
 
@@ -110,19 +127,21 @@ def report(rows: list[dict], by: str | list[str], name: str) -> None:
     with pd.option_context("display.max_colwidth", None, "display.width", None):
         print(table.to_string(index=False))
         print(stats.agg(["min", "median", "max"]))
-    out = REPORTS / f"experiment_{name}.csv"
+    out = (REPORTS if save else SCRATCH) / f"experiment_{name}.csv"
+    out.parent.mkdir(exist_ok=True)
     table.to_csv(out, index=False)
     print(f"Saved: {out}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:  # new process started by run_case: measure one case
-        print(json.dumps(measure(**json.loads(sys.argv[1]))))
+    if sys.argv[1:2] == ["--case"]:  # new process started by run_case: one case
+        print(json.dumps(measure(**json.loads(sys.argv[2]))))
     else:
+        save = parse_save(__doc__)
         # Cases alternate (P, E, unpinned, P, ...) so slow drift doesn't hit one only.
         rows = [
             run_case(**case) | {"repeat": r}
             for r in range(REPEATS)
             for case in CORE_TYPE_CASES
         ]
-        report(rows, by="cpu", name="core_type")
+        report(rows, by="cpu", name="core_type", save=save)

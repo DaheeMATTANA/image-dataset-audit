@@ -3,9 +3,9 @@
 Every file is read once before timing, so all runs start with a warm page cache
 (cold reads are not measured). Each time includes starting the worker pool.
 The 1-worker baseline runs once per sample size: one process ignores chunksize.
-Output, one row per run: reports/benchmark_workers.csv when one chunksize is
-timed, reports/benchmark_chunksize.csv when several are (so a quick run never
-overwrites a chunksize comparison).
+Output, one row per run: benchmark_workers.csv when one chunksize is timed,
+benchmark_chunksize.csv when several are (so a quick run never overwrites a
+chunksize comparison). Written to scratch/, or to reports/ with --save.
 """
 
 import argparse
@@ -17,7 +17,7 @@ from pathlib import Path
 import pandas as pd
 
 from check_integrity import check_integrity
-from image_dataset_audit.dataset import REPORTS, sample_images
+from image_dataset_audit.dataset import REPORTS, SCRATCH, sample_images
 from image_dataset_audit.parallel import START_METHOD, parallel_map
 
 DEFAULT_SAMPLES = [5000]
@@ -84,6 +84,11 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         default=DEFAULT_CHUNKSIZES,
         help="files sent to a worker at a time, e.g. 1 64 1024 (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="write the CSV to reports/ (committed results); default: scratch/",
     )
     args = parser.parse_args()
     for name in ["sample", "workers", "chunksize"]:
@@ -160,7 +165,7 @@ def main() -> None:
     print(table.drop(columns=list(machine)).to_string(index=False))
 
     name = "chunksize" if len(chunksizes) > 1 else "workers"
-    out = REPORTS / f"benchmark_{name}.csv"
+    out = (REPORTS if args.save else SCRATCH) / f"benchmark_{name}.csv"
     out.parent.mkdir(exist_ok=True)
     table.to_csv(out, index=False)
     print(f"Saved: {out}")

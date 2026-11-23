@@ -6,7 +6,8 @@ memory state:
     uv run python experiments/time_hamming_case.py
 
 Both methods count the pairs per distance (0 to 64), and the counts must match.
-The runs are saved to reports/experiment_hamming_loop.csv.
+The runs are saved to scratch/experiment_hamming_loop.csv, or to reports/ with
+--save.
 """
 
 import json
@@ -17,7 +18,7 @@ import time
 import numpy as np
 import pandas as pd
 
-from image_dataset_audit.dataset import OUTPUTS, REPORTS
+from image_dataset_audit.dataset import OUTPUTS, REPORTS, SCRATCH
 
 N = 5000
 SEED = 42
@@ -80,7 +81,7 @@ def measure(method: str) -> dict:
 def run_case(method: str) -> dict:
     """Run one method in a new process and return its result."""
     out = subprocess.run(
-        [sys.executable, __file__, method],
+        [sys.executable, __file__, "--case", method],
         stdout=subprocess.PIPE,  # stderr not captured: a crash shows its traceback
         text=True,
         check=True,
@@ -88,10 +89,24 @@ def run_case(method: str) -> dict:
     return json.loads(out.stdout)
 
 
+def parse_save() -> bool:
+    """The --save option of the run you start (the per-case processes take --case)."""
+    import argparse  # parent only, so the measured process loads the same modules
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="write the CSV to reports/ (committed results); default: scratch/",
+    )
+    return parser.parse_args().save
+
+
 if __name__ == "__main__":
-    if len(sys.argv) > 1:  # new process started by run_case: measure one method
-        print(json.dumps(measure(sys.argv[1])))
+    if sys.argv[1:2] == ["--case"]:  # new process started by run_case: one method
+        print(json.dumps(measure(sys.argv[2])))
     else:
+        save = parse_save()
         # Methods alternate (python, numpy, python, ...) so slow drift hits both.
         rows = [run_case(m) | {"repeat": r} for r in range(REPEATS) for m in METHODS]
         if any(row["counts"] != rows[0]["counts"] for row in rows):
@@ -106,6 +121,7 @@ if __name__ == "__main__":
                 f"101k: {PAIRS_101K / rate / 60:,.1f} min, "
                 f"10M: {PAIRS_10M / rate / 3600:,.0f} h"
             )
-        out = REPORTS / "experiment_hamming_loop.csv"
+        out = (REPORTS if save else SCRATCH) / "experiment_hamming_loop.csv"
+        out.parent.mkdir(exist_ok=True)
         table.to_csv(out, index=False)
         print(f"Saved: {out}")

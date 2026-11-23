@@ -18,7 +18,7 @@ Conventions:
 - **Two kinds of scripts.** `jpeg_png_experiment.py`, `hashing_experiment.py` and `perceptual_hash_experiment.py` are exploration files with `# %%` cells, meant to be run cell by cell (VS Code, `ipykernel`). The `time_*_case.py` scripts are run whole from the terminal.
 - **Timed cases run in a new process,** never in an interactive kernel: earlier work in the same process (for example the state of glibc `malloc`) changes the speed.
 - **Run timings on AC power, with nothing else running.** On battery the laptop lowers CPU clock speeds, and other programs compete for cores and for the CPU's power budget; either makes cases slower and less stable.
-- **Outputs.** Intermediate files go to `scratch/` (git-ignored). Results quoted in this file are saved in `reports/`.
+- **Outputs.** Intermediate files go to `scratch/` (git-ignored). Results quoted in this file are saved in `reports/`. The `time_*_case.py` scripts write their CSV to `scratch/` by default, since timings change from run to run; `--save` writes it to `reports/`.
 
 ---
 
@@ -111,10 +111,10 @@ Data: [`experiment_core_type.csv`](../reports/experiment_core_type.csv), [`exper
 **Run** (from the repo root, on AC power with nothing else running, about 2 minutes each; no `MALLOC_*` variable exported in the shell):
 
 ```bash
-uv run python experiments/time_serial_case.py            # core type → reports/experiment_core_type.csv
-uv run python experiments/time_warmup_case.py            # warm-up size → reports/experiment_warmup.csv
-uv run python experiments/time_sample_size_case.py       # sample size → reports/experiment_sample_size.csv
-uv run python experiments/time_malloc_threshold_case.py  # malloc thresholds → reports/experiment_malloc_threshold.csv
+uv run python experiments/time_serial_case.py --save            # core type → reports/experiment_core_type.csv
+uv run python experiments/time_warmup_case.py --save            # warm-up size → reports/experiment_warmup.csv
+uv run python experiments/time_sample_size_case.py --save       # sample size → reports/experiment_sample_size.csv
+uv run python experiments/time_malloc_threshold_case.py --save  # malloc thresholds → reports/experiment_malloc_threshold.csv
 ```
 
 ---
@@ -320,5 +320,5 @@ Data: [`experiment_hamming_loop.csv`](../reports/experiment_hamming_loop.csv). O
 **Run** (reads `outputs/perceptual_hashes.csv`, written by `src/compute_perceptual_hashes.py`; a few seconds):
 
 ```bash
-uv run python experiments/time_hamming_case.py
+uv run python experiments/time_hamming_case.py --save
 ```
