@@ -1,6 +1,6 @@
 # Design doc: Food-101 audit
 
-*Status: draft v0.1. Sections 3–5 cover the stages implemented so far (profile, integrity check, exact duplicates, perceptual hashes) and the exact-duplicate hash index; later stages are added as they are implemented.*
+*Status: draft v0.1. Sections 3–5 cover the stages implemented so far (profile, integrity check, exact duplicates, perceptual hashes, near-duplicate candidates) and the exact-duplicate hash index; later stages are added as they are implemented.*
 
 *Source labels:*
 *- **[measured]**: written by a script in `src/` or `benchmarks/` to `reports/`.*
@@ -115,10 +115,13 @@ The ~20× gap exists only for a client sending one request at a time. Filling th
 | Parallelism | Threads vs processes | Threads share memory and start fast, but Python code between C calls holds the GIL; processes scale on CPU-bound work but each one starts and holds its own memory |
 | Hash width in the index | 32, 64 or 256 bits of SHA-256 | Fewer bits save memory per entry but let different images share a value by chance |
 | Where the hash index lives | Dict in memory on one machine; sorted file + merge; key-value store; sharding by hash prefix | Compared in section 6, at 10M and 1B images |
+| Near-duplicate search | Compare every pair of perceptual hashes (exact) vs an index or approximate search that skips most pairs | Every pair is exact and simple but grows with N²; an index scales further but can miss pairs, and its recall can only be measured against an exact run |
+| Pair comparison code | Python loop over pairs vs NumPy, one row against all later rows | The loop needs no array setup but runs Python code for every pair; NumPy makes one call per row and does the pairs in compiled code |
+| Candidate radius | One Hamming distance radius for all hashes vs one per hash | One radius is simpler, but the three hashes spread pairs very differently at small distances (section 4) |
 
 *Still to decide, as the later stages are implemented:*
 
-- *Near-duplicates: dHash vs pHash; Hamming distance threshold.*
+- *Near-duplicates: which hash (dHash or pHash) and which Hamming distance threshold, from hand-labeled candidate pairs.*
 - *Semantic duplicates: which embedding model; cosine threshold chosen from a precision/recall curve.*
 - *Search: exact all-pairs in blocks vs approximate nearest neighbors (FAISS IVF, HNSW).*
 - *Storage: CSV vs Parquet vs Lance for the curation table.*
@@ -132,6 +135,9 @@ The ~20× gap exists only for a client sending one request at a time. Filling th
 | Hash function | SHA-256 | MD5 allows deliberately built collisions, which matters once data comes from the open web; on this CPU (SHA extensions), SHA-256 is also faster: ~44 vs ~97 µs per 50.7 KB [timed manually] |
 | Decode passes | One full-decode pass computes the corruption check, the file hash and the pixel hash | ~1.46 ms per image for all three together, one process (687 img/s on 5,000 images) [measured] |
 | Perceptual hashes | Separate pass with its own decode, not merged into the integrity pass | Hashing is a different concern from integrity, and the hash stage is rerun while hashes and thresholds are tuned; the second decode costs ~20 s at 101,000 images [timed manually]. At 10M images (~37 min per extra decode pass), one decode shared by all CPU signals is the better choice (section 6) |
+| Near-duplicate search at Food-101's size | Every pair, NumPy one row at a time, one process, for each of the three hashes | 5,100,449,500 pairs per hash in 8.1–8.5 s, 11.0–11.4 s with candidate pairs and same-class counts [timed manually]; NumPy is 24.5× faster than the Python loop on 5,000 hashes, with the same counts [experiment]. An exact run is also the reference for measuring the recall of faster methods later; workers would save only seconds here |
+| Candidate radius | dHash 12, pHash 12; aHash counted, no candidates | Pairs per distance stay in the tens up to distance 4 (dHash) and 6 (pHash), then grow; aHash already has 66,300 pairs within distance 4 [measured]. Radius 12 lies past both ranges, so hand labels can test pairs on both sides of a threshold: 125,465 dHash and 36,886 pHash candidate pairs [measured] |
+| Same-class count per distance | Counted with the pair counts, in the same pass | Share of same-class pairs: 98% at distance 0 (dHash, pHash), below 10% from distance 5 (dHash) and 8 (pHash), 0.99% over all pairs [measured]: shows without labels where copies give way to unrelated pairs; costs ~+1.8 s per hash [timed manually] |
 | Parallelism | Processes, 14 workers for the full run | The check is CPU-bound: CPU time = wall time on 2,000 images [timed manually]. Threads match processes up to 4 workers, peak at 6 (2,731 img/s) and fall after; processes reach 3,713 img/s at 14 [measured] |
 | Hash width | Full 256-bit hashes | At 32 bits, different images already share a value at Food-101's size: 3 (file hash) and 4 (pixel hash) chance pairs [experiment]; see section 6 for 10M and 1B |
 | Hash index at Food-101's size | In-memory group-by on the per-image hash table (`outputs/integrity.csv`) | 100,940 unique pixel hashes; as a Python dict, ~18 MB (176 bytes per entry) [experiment]: far below the 30 GB of RAM |
@@ -147,6 +153,7 @@ Actual time and memory next to the estimates in section 2; every gap larger than
 | SHA-256 | ~10–20 s (separate pass) | not timed separately: runs inside the decode pass | n/a |
 | Hash index in memory | ~165 bytes per entry (mock estimate) | 176 bytes per entry (32-byte digest, image ID as value) [experiment] | within 7% |
 | Perceptual hash (aHash, dHash, pHash; own full decode) | up to ~5–8 min | 38.6 s with 14 processes, 33.3 s with 20, warm page cache [timed manually]; 1.8× the integrity check under the same conditions | The estimate is for 1 process; the 1-process cost per image is not measured yet |
+| All-pairs Hamming distances, one hash, one process | ~5.2 min with a Python loop, ~13 s with NumPy, extrapolated from 5,000 hashes (16.5M and 403M pairs/s) [experiment] | 8.1–8.5 s with NumPy, counts only [timed manually]; the loop was not run at 101,000 | NumPy is 1.6× faster than extrapolated: each row pays a fixed cost for its Python calls, shared by more pairs when rows are longer (50,500 hashes per row on average at 101,000 images, 2,500 at 5,000) |
 | Embeddings (GPU) | ~2–4 min | | |
 
 ---
@@ -169,10 +176,14 @@ N = number of images. Per-image costs grow with N; pairwise costs grow with N².
 | Embeddings, one GPU | N | ~2–4 min | ~20–40 min | ~3–7 h |
 | One GET per file, one at a time | N | ~17 min | ~2.8 h | ~28 h |
 | All pairs | N² | 5.1 × 10⁹ | 5.1 × 10¹¹ | 5.1 × 10¹³ |
+| All-pairs Hamming distances, one hash, one process | N² | ~8 s [timed manually] | ~14 min | ~22 h |
+| dHash candidates within distance 12, if the same share of pairs | N² | 125,465 pairs [measured], ~5 MB | ~12.5M pairs, ~0.5 GB | ~1.25B pairs, ~53 GB [estimate, ~42 bytes per pair in CSV] |
 | Full similarity matrix, float32 | N² | ~41 GB | ~4.1 TB | ~410 TB |
 | Exact all-pairs similarity, CPU, in blocks | N² | ~1–2 min | ~2–3 h | ~7–14 days |
 
 Per-image passes grow linearly and stay feasible on one machine with more cores or GPUs. Pairwise comparison grows with the square: at 10×, exact search in blocks still runs in hours; at 100×, it takes weeks of CPU time, which forces approximate nearest-neighbor search (section 3) or a distributed version. Embeddings stop fitting comfortably in RAM around 100× (float16 halves them).
+
+For near-duplicates, comparing every pair of 64-bit hashes stays practical up to about 10× on one machine. At 100×, it takes about a day per hash in one process (workers divide this by at most the number of cores), and the candidate list, ~53 GB if the same share of pairs falls within the radius, no longer fits in memory: it has to be written in chunks. Past that scale, an index that avoids comparing every pair is needed, with its recall measured against the exact run at Food-101's size.
 
 ### Where the exact-duplicate hash index lives
 
