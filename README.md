@@ -282,7 +282,7 @@ uv run python src/plot_near_duplicate_distances.py
 
 ### Benchmarks
 
-Timing scripts live in [`benchmarks/`](benchmarks/) and write their results to `reports/benchmark_*`.
+Timing scripts live in [`benchmarks/`](benchmarks/). Timings change from run to run, so a run writes its CSV to `scratch/` (git-ignored) by default; `--save` writes it to `reports/benchmark_*` instead, the results quoted in this README.
 
 | Script | Measures | Outputs |
 |---|---|---|
@@ -294,11 +294,11 @@ Timing scripts live in [`benchmarks/`](benchmarks/) and write their results to `
 
 ```bash
 MALLOC="MALLOC_MMAP_THRESHOLD_=16777216 MALLOC_TRIM_THRESHOLD_=8388608"  # fixed malloc thresholds, see below
-env $MALLOC uv run python benchmarks/bench_workers.py --sample 1000 5000 20000 --workers 2 4 6 14 20              # → benchmark_workers.csv
+env $MALLOC uv run python benchmarks/bench_workers.py --sample 1000 5000 20000 --workers 2 4 6 14 20 --save              # → benchmark_workers.csv
 uv run python benchmarks/plot_workers.py
-env $MALLOC uv run python benchmarks/bench_workers.py --sample 5000 --workers 2 4 6 14 20 --chunksize 64 256 1024  # → benchmark_chunksize.csv
+env $MALLOC uv run python benchmarks/bench_workers.py --sample 5000 --workers 2 4 6 14 20 --chunksize 64 256 1024 --save  # → benchmark_chunksize.csv
 uv run python benchmarks/plot_chunksize.py
-env $MALLOC uv run python benchmarks/bench_threads.py                                                           # → benchmark_threads.csv
+env $MALLOC uv run python benchmarks/bench_threads.py --save                                                           # → benchmark_threads.csv
 uv run python benchmarks/plot_threads.py
 ```
 

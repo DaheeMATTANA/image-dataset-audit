@@ -5,7 +5,8 @@ state (e.g. glibc malloc's). Both kinds call parallel_map with the same
 chunksize; only the kind of worker differs. With 1 worker parallel_map runs a
 plain loop, the baseline for speedup. Every file is read once before timing
 (warm page cache); each time includes starting the pool. One run per case.
-Output, one row per case: reports/benchmark_threads.csv
+Output, one row per case: benchmark_threads.csv, written to scratch/, or to
+reports/ with --save.
 """
 
 import argparse
@@ -22,7 +23,7 @@ from tqdm import tqdm
 
 from bench_workers import cpu_name, malloc_settings
 from check_integrity import check_integrity
-from image_dataset_audit.dataset import REPORTS, sample_images
+from image_dataset_audit.dataset import REPORTS, SCRATCH, sample_images
 from image_dataset_audit.parallel import START_METHOD, parallel_map
 
 # 6 = all P-cores, 14 = all physical cores, 20 = all logical CPUs (i7-13650HX);
@@ -82,6 +83,11 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_WORKERS,
         help="worker counts for each pool (default: %(default)s)",
     )
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="write the CSV to reports/ (committed results); default: scratch/",
+    )
     parser.add_argument("--case", help=argparse.SUPPRESS)  # set by run_case only
     args = parser.parse_args()
     if args.sample <= 0 or min(args.workers) <= 0:
@@ -125,7 +131,8 @@ def main() -> None:
     print(table.drop(columns=list(machine)).to_string(index=False))
     print(table.pivot(index="workers", columns="kind", values="images_per_s"))
 
-    out = REPORTS / "benchmark_threads.csv"
+    out = (REPORTS if args.save else SCRATCH) / "benchmark_threads.csv"
+    out.parent.mkdir(exist_ok=True)
     table.to_csv(out, index=False)
     print(f"Saved: {out}")
 

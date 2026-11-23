@@ -3,7 +3,7 @@
 Each case runs in a new process (run_case): glibc reads MALLOC_* variables only
 at process start. One run per case: fault counts are identical from run to run,
 and the speed gaps are far larger than run-to-run noise. The runs are saved to
-reports/experiment_malloc_threshold.csv.
+scratch/experiment_malloc_threshold.csv, or to reports/ with --save.
 
     uv run python experiments/time_malloc_threshold_case.py
 """
@@ -11,7 +11,7 @@ reports/experiment_malloc_threshold.csv.
 import os
 import sys
 
-from time_serial_case import report, run_case
+from time_serial_case import parse_save, report, run_case
 
 MIB = 2**20
 MMAP_16 = {"MALLOC_MMAP_THRESHOLD_": str(16 * MIB)}
@@ -36,6 +36,7 @@ def threshold_mb(env: dict[str, str], name: str) -> float | None:
 
 
 if __name__ == "__main__":
+    save = parse_save(__doc__)
     # run_case adds to the parent's environment: an exported MALLOC_* would leak in.
     if any(k.startswith("MALLOC_") for k in os.environ):
         sys.exit("Unset MALLOC_* variables first (see README benchmark commands).")
@@ -47,4 +48,9 @@ if __name__ == "__main__":
         }
         for env in CASES
     ]
-    report(rows, by=["mmap_threshold_mb", "trim_threshold_mb"], name="malloc_threshold")
+    report(
+        rows,
+        by=["mmap_threshold_mb", "trim_threshold_mb"],
+        name="malloc_threshold",
+        save=save,
+    )
