@@ -8,3 +8,6 @@ hamburger/3578279,non_food,find_exact_duplicates:pixel,manual,text
 hamburger/3783650,non_food,find_exact_duplicates:pixel,manual,text
 steak/97656,wrong_label,find_exact_duplicates:pixel,manual,correct: prime_rib
 pancakes/2619752,wrong_label,find_exact_duplicates:pixel,manual,correct: omelette
+prime_rib/478968,non_food,find_near_duplicate_candidates:phash,manual,text
+prime_rib/478971,non_food,find_near_duplicate_candidates:phash,manual,text
+bibimbap/2011447,non_food,find_near_duplicate_candidates:dhash,manual,place
