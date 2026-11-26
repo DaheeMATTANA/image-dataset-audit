@@ -1,6 +1,6 @@
 # Design doc: Food-101 audit
 
-*Status: draft v0.1. Sections 3–5 cover the stages implemented so far (profile, integrity check, exact duplicates, perceptual hashes, near-duplicate candidates) and the exact-duplicate hash index; later stages are added as they are implemented.*
+*Status: draft v0.1. Sections 3–5 cover the stages implemented so far (profile, integrity check, exact duplicates, perceptual hashes, near-duplicate candidates and their precision) and the exact-duplicate hash index; later stages are added as they are implemented.*
 
 *Source labels:*
 *- **[measured]**: written by a script in `src/` or `benchmarks/` to `reports/`.*
@@ -118,10 +118,11 @@ The ~20× gap exists only for a client sending one request at a time. Filling th
 | Near-duplicate search | Compare every pair of perceptual hashes (exact) vs an index or approximate search that skips most pairs | Every pair is exact and simple but grows with N²; an index scales further but can miss pairs, and its recall can only be measured against an exact run |
 | Pair comparison code | Python loop over pairs vs NumPy, one row against all later rows | The loop needs no array setup but runs Python code for every pair; NumPy makes one call per row and does the pairs in compiled code |
 | Candidate radius | One Hamming distance radius for all hashes vs one per hash | One radius is simpler, but the three hashes spread pairs very differently at small distances (section 4) |
+| Pairs to label | Random pairs from all candidates vs a fixed number per distance | A random sample follows the counts: 84% of dHash candidates lie at distance 11–12 and 0.2% at distance 0–5, where the threshold is decided [measured], so 200 random pairs would hold almost none of the copies. A fixed number per distance covers every distance, but each distance must then be weighted by its pair count |
+| Near-duplicate rule | dHash or pHash; one hash or both; distance threshold | A lower threshold returns fewer false pairs but misses more copies; a second hash finds a few more copies at the cost of more false pairs |
 
 *Still to decide, as the later stages are implemented:*
 
-- *Near-duplicates: which hash (dHash or pHash) and which Hamming distance threshold, from hand-labeled candidate pairs.*
 - *Semantic duplicates: which embedding model; cosine threshold chosen from a precision/recall curve.*
 - *Search: exact all-pairs in blocks vs approximate nearest neighbors (FAISS IVF, HNSW).*
 - *Storage: CSV vs Parquet vs Lance for the curation table.*
@@ -137,6 +138,8 @@ The ~20× gap exists only for a client sending one request at a time. Filling th
 | Perceptual hashes | Separate pass with its own decode, not merged into the integrity pass | Hashing is a different concern from integrity, and the hash stage is rerun while hashes and thresholds are tuned; the second decode costs ~20 s at 101,000 images [timed manually]. At 10M images (~37 min per extra decode pass), one decode shared by all CPU signals is the better choice (section 6) |
 | Near-duplicate search at Food-101's size | Every pair, NumPy one row at a time, one process, for each of the three hashes | 5,100,449,500 pairs per hash in 8.1–8.5 s, 11.0–11.4 s with candidate pairs and same-class counts [timed manually]; NumPy is 24.5× faster than the Python loop on 5,000 hashes, with the same counts [experiment]. An exact run is also the reference for measuring the recall of faster methods later; workers would save only seconds here |
 | Candidate radius | dHash 12, pHash 12; aHash counted, no candidates | Pairs per distance stay in the tens up to distance 4 (dHash) and 6 (pHash), then grow; aHash already has 66,300 pairs within distance 4 [measured]. Radius 12 lies past both ranges, so hand labels can test pairs on both sides of a threshold: 125,465 dHash and 36,886 pHash candidate pairs [measured] |
+| Labeled sample | 10 pairs per hash and distance 0–12, 184 pairs in all, labeled without class, split or distance on screen; the 62 pixel-identical pairs count as known copies; each distance is weighted by its pair count | Small distances hold 15–108 pairs each, so 10 labels cover a large share of them; at large distances 10 labels only bound the share of copies, and the same-class count bounds it further [hand-labeled, measured] |
+| Near-duplicate rule | pHash distance ≤ 4; dHash kept as a reported signal | pHash ≤ 4 returns 145 pairs, and all 92 checked ones are copies (62 pixel-identical, 30 labeled) [measured]. dHash ≤ 4 returns 171 pairs at an estimated 86.4% [measured]. One step further adds 30 pairs at 20% (pHash 6) or 63 pairs at 20% (dHash 5) [measured]. The threshold is chosen on the same labels, so pHash ≤ 4's precision is an upper reading |
 | Same-class count per distance | Counted with the pair counts, in the same pass | Share of same-class pairs: 98% at distance 0 (dHash, pHash), below 10% from distance 5 (dHash) and 8 (pHash), 0.99% over all pairs [measured]: shows without labels where copies give way to unrelated pairs; costs ~+1.8 s per hash [timed manually] |
 | Parallelism | Processes, 14 workers for the full run | The check is CPU-bound: CPU time = wall time on 2,000 images [timed manually]. Threads match processes up to 4 workers, peak at 6 (2,731 img/s) and fall after; processes reach 3,713 img/s at 14 [measured] |
 | Hash width | Full 256-bit hashes | At 32 bits, different images already share a value at Food-101's size: 3 (file hash) and 4 (pixel hash) chance pairs [experiment]; see section 6 for 10M and 1B |
@@ -154,6 +157,7 @@ Actual time and memory next to the estimates in section 2; every gap larger than
 | Hash index in memory | ~165 bytes per entry (mock estimate) | 176 bytes per entry (32-byte digest, image ID as value) [experiment] | within 7% |
 | Perceptual hash (aHash, dHash, pHash; own full decode) | up to ~5–8 min | 38.6 s with 14 processes, 33.3 s with 20, warm page cache [timed manually]; 1.8× the integrity check under the same conditions | The estimate is for 1 process; the 1-process cost per image is not measured yet |
 | All-pairs Hamming distances, one hash, one process | ~5.2 min with a Python loop, ~13 s with NumPy, extrapolated from 5,000 hashes (16.5M and 403M pairs/s) [experiment] | 8.1–8.5 s with NumPy, counts only [timed manually]; the loop was not run at 101,000 | NumPy is 1.6× faster than extrapolated: each row pays a fixed cost for its Python calls, shared by more pairs when rows are longer (50,500 hashes per row on average at 101,000 images, 2,500 at 5,000) |
+| Near-duplicate precision within distance 12 | At most the share of same-class pairs, since copies of one photo almost always share a class: 2,875 of 125,465 dHash pairs (2.3%), 885 of 36,886 pHash pairs (2.4%) [measured] | 0.2% dHash, 0.4% pHash [measured] | About 10× below the bound: at large distances, most same-class pairs are different photos of the same dish, not copies |
 | Embeddings (GPU) | ~2–4 min | | |
 
 ---
@@ -184,6 +188,8 @@ N = number of images. Per-image costs grow with N; pairwise costs grow with N².
 Per-image passes grow linearly and stay feasible on one machine with more cores or GPUs. Pairwise comparison grows with the square: at 10×, exact search in blocks still runs in hours; at 100×, it takes weeks of CPU time, which forces approximate nearest-neighbor search (section 3) or a distributed version. Embeddings stop fitting comfortably in RAM around 100× (float16 halves them).
 
 For near-duplicates, comparing every pair of 64-bit hashes stays practical up to about 10× on one machine. At 100×, it takes about a day per hash in one process (workers divide this by at most the number of cores), and the candidate list, ~53 GB if the same share of pairs falls within the radius, no longer fits in memory: it has to be written in chunks. Past that scale, an index that avoids comparing every pair is needed, with its recall measured against the exact run at Food-101's size.
+
+A distance threshold does not keep its precision on a larger dataset. If the share of images that have a copy stays the same, the number of copy pairs grows with N, while pairs of unrelated images that land close by chance grow with N². At dHash ≤ 4, Food-101 has an estimated 147.7 copies and 23.3 other pairs (171 pairs at 86.4%) [measured]. At 10×, that gives ~1,480 copies and ~2,330 other pairs, a precision of ~39%; at 100×, ~14,800 copies and ~233,000 other pairs, ~6% [estimate]. pHash ≤ 4 had no false pair among the 92 checked, so its growth can't be projected from this sample; a single false pair per 145 at Food-101's size would already become ~10,000 at 100×, against ~14,500 copies. The threshold has to be measured again on labels drawn from the larger dataset, and is likely to tighten.
 
 ### Where the exact-duplicate hash index lives
 
